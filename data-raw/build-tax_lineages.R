@@ -6,9 +6,9 @@
 # (dump script: DA_PELAGIC/R/12_dump_taxonomy.R).
 #
 # Selection: hand-curated 19 ASVs with complete Phylum..Genus assignments, one per
-# distinct genus, chosen for clean branching (7 phyla, 6 classes, 14 orders,
-# 18 distinct families over 19 rows - one row's order and family are the same
-# SILVA string, Vampirovibrionales). 18S rows carry Species where the source had a real species call;
+# distinct genus, chosen for clean branching (distinct labels: 7 phyla, 11 classes,
+# 17 orders, 19 families, 19 genera; see tax_lineages_min.README.md for the
+# cross-rank overlaps). 18S rows carry Species where the source had a real species call;
 # uncultured_* placeholders and all 16S species fields are "" (no species rank in the
 # 16S source). Unranked placeholders (uncultured_*, rank-shifted family==genus rows)
 # were excluded.
