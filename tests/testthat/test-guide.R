@@ -91,7 +91,7 @@ test_that("constructor rejects unsupported guide_axis args by name", {
 test_that("missing nodes aborts with guidance; shape aborts name the contract", {
   # discriminator: the guard's own message, not a substring the shape
   # abort also matches (sentinel BLOCKER 4)
-  expect_error(guide_dirtree(), "needs `nodes`", fixed = TRUE)
+  expect_error(guide_dirtree(), "must be given", fixed = TRUE)
   expect_error(guide_dirtree(nodes = data.frame(x = 1)),
                "must be a node table", fixed = TRUE)
 })
