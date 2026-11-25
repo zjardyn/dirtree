@@ -149,13 +149,15 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     trunk = trunk, tick = tick,
     arm = arm_y, first_child = first_child,
     depth = depth,                                   # rank spread (inches)
-    band = band,                                     # deepest label extent
+    band = band,                                     # deepest trunk column + sep
     geom = geom
   )
 }
 
-#' Run-length blocks of rows grouped by connector-parent (roots are the NA
-#' run), in row order. Returns start/end row indices and root flag.
+#' Run-length blocks of consecutive rows sharing a connector-parent, in row
+#' order. Returns start/end row indices; the caller passes only child rows
+#' (roots have no block — the forest rule in dirtree_layout draws the single
+#' root trunk instead).
 #' @keywords internal
 #' @noRd
 .rle_rows <- function(cp_child, cp_row) {
@@ -165,8 +167,7 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   list(
     cp = r$values,
     start = cp_row[start],
-    end = cp_row[end],
-    root = is.na(r$values)
+    end = cp_row[end]
   )
 }
 

@@ -84,12 +84,17 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
           i = "Plot breaks on {.field node_key} and pass the full node table from {.fn dirtree_data}."
         ))
       }
-      nd <- nodes[idx, , drop = FALSE]
-      newpar <- match(nodes$parent[idx], idx)
+      # Normalize to TREE order: a reversed y-axis (limits = rev(...)) hands
+      # the key rows bottom-up, and the layout's start/end semantics (last
+      # child, last root) are defined in tree order. The break positions in
+      # `pos` carry the direction; the rows must not.
+      ord <- order(idx)
+      nd <- nodes[idx[ord], , drop = FALSE]
+      newpar <- match(nodes$parent[idx[ord]], idx[ord])
       orphan <- which(is.na(newpar) & nd$level > 0L)
       if (length(orphan)) {
         .dt_abort(c(
-          "{.fn guide_dirtree} breaks are not tree-closed: {.val {labels[orphan]}} has no parent row.",
+          "{.fn guide_dirtree} breaks are not tree-closed: {.val {nd$node_key[orphan]}} has no parent row.",
           i = "Include every ancestor rank in {.field breaks}."
         ))
       }
@@ -103,7 +108,7 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
       )
       list(dirtree_grob(
         nd, text,
-        pos = key[[params$aes]],
+        pos = key[[params$aes]][ord],
         gp = gp,
         vertical = isTRUE(params$vertical)
       ))

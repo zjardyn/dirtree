@@ -180,3 +180,56 @@ test_that("the grob forwards `vertical`: x-axis arms are depth-only drops", {
   expect_true(all(abs(x0 - x1) < 1e-6))              # depth-only arms
   expect_equal(sort(unique(round(abs(y0 - y1), 8))), rep(em, 1))  # 1 em spans
 })
+
+test_that("labels use the gold typography: mono family, italic genus/species", {
+  d <- dirtree_data(toy_lineages())
+  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  lab <- dirtree_labels(d)
+  g <- dirtree_grob(d, lab, pos = pos, vertical = TRUE)
+  txt <- g$children[[3]]$children[[1]]
+  # grid's textGrob folds fontfamily/fontface into a resolved `font` index;
+  # typewriter family + per-label face must survive that fold: one resolved
+  # font for every rank label, a DIFFERENT resolved font on genus/species
+  # (the italic Courier), no unresolved (NA) fonts.
+  font <- txt$gp$font
+  expect_length(font, length(lab))
+  expect_false(anyNA(font))
+  gs <- grepl("^[gs]_", lab)
+  expect_identical(length(unique(font[gs])), 1L)
+  expect_identical(length(unique(font[!gs])), 1L)
+  expect_false(unique(font[gs]) == unique(font[!gs]))
+})
+
+test_that("reversed y-axis breaks still draw the continuous root trunk", {
+  skip_if_not_installed("ggplot2")
+  d <- dirtree_data(toy_lineages())
+  p <- ggplot2::ggplot(d, ggplot2::aes(y = node_key, x = n)) +
+    ggplot2::geom_col() +
+    ggplot2::scale_y_discrete(limits = rev(as.character(d$node_key)),
+                              breaks = rev(as.character(d$node_key))) +
+    ggplot2::guides(y = guide_dirtree(nodes = d)) +
+    ggplot2::theme_minimal(base_size = 6)
+  gt <- ggplot2::ggplotGrob(p)
+  tree <- NULL
+  walk <- function(g) {
+    if (inherits(g, "dirtreeGrob")) tree <<- g
+    if (!is.null(g$children)) lapply(g$children, walk)
+    if (!is.null(g$grobs)) lapply(g$grobs, walk)
+  }
+  walk(gt)
+  expect_false(is.null(tree))
+  seg <- tree$children[[1]] # the trunk/connector segments grob
+  depth_of <- function(u) {
+    vapply(format(u), function(s) {
+      mm <- regmatches(s, regexpr("-[0-9.]+inches", s))
+      if (length(mm)) -as.numeric(sub("inches$", "", mm)) else NA_real_
+    }, 0)
+  }
+  dep <- depth_of(seg$x0)
+  roots <- !is.na(dep) & dep == max(dep, na.rm = TRUE) # outermost (roots') column
+  expect_gte(sum(roots), 1L)
+  # continuous: one span covering first root to last root's arm (>0.5 npc
+  # for this 9-row tree); a row-order bug fragments it into stubs
+  span <- as.numeric(seg$y0[roots]) - as.numeric(seg$y1[roots])
+  expect_gte(max(span), 0.5)
+})

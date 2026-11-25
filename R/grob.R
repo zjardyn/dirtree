@@ -39,9 +39,10 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   along <- function(a) grid::unit(as.numeric(a), "npc")
   # Depth coordinates run from the axis line into the band. For the x-axis
   # the axis line is the band TOP: grid y grows upward, so depth d maps to
-  # 1npc - d. (For the y-axis, depth is along x from the band's left edge,
-  # the axis line.) The band's measured size equals the tree's deepest
-  # extent, so the 1npc expressions resolve against the band viewport.
+  # 1npc - d. (For the y-axis — a left axis — the axis line is the band's
+  # RIGHT edge, so depth runs from 1npc leftward.) The band's measured size
+  # equals the tree's deepest extent, so the 1npc expressions resolve
+  # against the band viewport.
   depth_x <- function(d) {
     if (vertical) grid::unit(1, "npc") - grid::unit(d, "inches")
     else grid::unit(d, "inches")
@@ -57,7 +58,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y0 = py(ly$trunk$y0, ly$trunk$x),
     x1 = px(ly$trunk$y1, ly$trunk$x),
     y1 = py(ly$trunk$y1, ly$trunk$x),
-    gp = rule_gp(gp), name = "dirtree-rules"
+    gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
   )
   # Connector arm into each node's label (gold / dtx:757-768): the horizontal
   # 1 em rule on the baseline row, from the node's own corner column. The
@@ -68,7 +69,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y0 = py(ly$tick$y0[show], ly$tick$x0[show]),
     x1 = px(ly$tick$y1[show], ly$tick$x1[show]),
     y1 = py(ly$tick$y1[show], ly$tick$x1[show]),
-    gp = rule_gp(gp), name = "dirtree-rules"
+    gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
   )
   txt <- grid::textGrob(
     label = labels,
@@ -97,8 +98,10 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
 }
 
 #' Size report: the band's depth (perpendicular to the axis) is the tree's
-#' extent (rank columns + rotated label length on the x-axis; rank columns on
-#' the y-axis); the along-axis extent is the full cell (the panel span).
+#' rank-column extent plus the outward shift that parks the longest label
+#' flush with the axis line (the labels lie INSIDE that span — the gold's
+#' proportion: tree, labels, bars); the along-axis extent is the full cell
+#' (the panel span).
 #' Consumed by ggplot2's measure_grobs via grid height/width generics.
 #' Registered via @rawNamespace: `@export` on these methods emits NO
 #' S3method line (roxygen cannot resolve the generic — grid is not
@@ -142,12 +145,14 @@ widthDetails.dirtreeGrob <- function(x) {
   invisible(TRUE)
 }
 
-#' Rule gpar: thin butt-capped lines inheriting colour/linewidth from the
-#' theme text, drawn under the labels.
+#' Rule gpar: thin butt-capped lines inheriting colour from the theme text,
+#' drawn under the labels. Width is the geom's rule (dtx-exact 0.35pt
+#' default), unless the theme text carries its own linewidth.
 #' @keywords internal
 #' @noRd
-rule_gp <- function(gp) {
-  g <- grid::gpar(linewidth = 0.4, lineend = "butt", linejoin = "mitre")
+rule_gp <- function(gp, rule = NULL) {
+  g <- grid::gpar(linewidth = (rule %||% 0.4 / 72.27) * 72.27,
+                  lineend = "butt", linejoin = "mitre")
   if (!is.null(gp)) {
     common <- intersect(names(gp), names(g))
     g[common] <- gp[common]
