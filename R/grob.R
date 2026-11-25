@@ -84,11 +84,12 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
     # The label starts 1.2 em from its own trunk column on the tree's inner
     # side and grows toward the axis line on the y-axis; on the mirrored
-    # x-axis it anchors on the outer side of the corner and dangles away
-    # from the axis line (rot -90, reading top-down).
-    hjust = 0,
+    # x-axis it anchors by its FAR end (hjust 1, standard rotated-axis
+    # typography: reads bottom-up) at the same point and dangles away from
+    # the axis line.
+    hjust = if (vertical) 0 else 1,
     vjust = 0.5,
-    rot = if (vertical) 0 else -90,
+    rot = if (vertical) 0 else 90,
     gp = gp, name = "label"
   )
   grid::gTree(

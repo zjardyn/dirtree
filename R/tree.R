@@ -111,15 +111,17 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   pitch_npc <- if (n > 1L) stats::median(abs(diff(sort(pos)))) else 0
   # Along-axis offsets sit on the text's DESCENDER side, a fixed device-side
   # rule independent of the row direction: the baseline is 0.21 row below
-  # the slot centre for horizontal labels (y-axis) and left of it for the
-  # x-axis' top-down labels; the root trunk starts 0.02 row out from the
+  # the slot centre for horizontal labels (y-axis) and right of it for the
+  # x-axis' bottom-up labels; the root trunk starts 0.02 row out from the
   # first root's centre on the same side. A block trunk starts at the
   # parent's box bottom on the side AWAY from the parent's dangling ink —
   # below the slot centre on the y-axis (the ink sits above the box
   # bottom), but on the CHILDREN'S side of the label on the mirrored x-axis
   # (the ink dangles down through the children's corner depth, so a trunk
-  # sprung from the far side would run straight through the glyphs).
-  arm_y <- pos - 0.21 * pitch_npc
+  # sprung from the far side would run straight through the glyphs). The
+  # arm rides the baseline, which for the x-axis' bottom-up labels is RIGHT
+  # of the slot centre.
+  arm_y <- if (vertical) pos - 0.21 * pitch_npc else pos + 0.21 * pitch_npc
   leg_top <- if (vertical) pos - 0.44 * pitch_npc else pos + 0.44 * pitch_npc
   root_top_y <- pos - 0.02 * pitch_npc
 
