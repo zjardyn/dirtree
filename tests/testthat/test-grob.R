@@ -233,3 +233,41 @@ test_that("reversed y-axis breaks still draw the continuous root trunk", {
   span <- as.numeric(seg$y0[roots]) - as.numeric(seg$y1[roots])
   expect_gte(max(span), 0.5)
 })
+
+test_that("rules draw at the dtx width, floored to a visible hairline", {
+  d <- dirtree_data(toy_lineages())
+  g <- dirtree_grob(d, dirtree_labels(d),
+                    pos = (seq_len(nrow(d)) - 0.5) / nrow(d), vertical = TRUE)
+  # grid consumes gpar field `lwd` (points); a stray `linewidth` never renders
+  expect_equal(unique(g$children[[1]]$gp$lwd), 0.5, tolerance = 1e-6)
+  expect_null(g$children[[1]]$gp$linewidth)
+  # the dtx-exact 0.35 pt is sub-pixel on PNG export (arms vanish); the floor
+  # keeps a hairline, and min_lwd = 0 restores the print-exact width
+  expect_equal(dirtree:::rule_gp(NULL, 0.35 / 72.27, min_lwd = 0)$lwd,
+               0.35, tolerance = 1e-6)
+  # the floor also binds on a theme width below it (never a sub-pixel rule)
+  expect_equal(dirtree:::rule_gp(grid::gpar(lwd = 0.2), 0.35 / 72.27)$lwd, 0.5)
+})
+
+test_that("x-axis guide draws the rotated tree end to end", {
+  skip_if_not_installed("ggplot2")
+  d <- dirtree_data(toy_lineages())
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = node_key, y = n)) +
+    ggplot2::geom_col() +
+    ggplot2::scale_x_discrete(limits = as.character(d$node_key),
+                              breaks = as.character(d$node_key)) +
+    ggplot2::guides(x = guide_dirtree(nodes = d)) +
+    ggplot2::theme_minimal(base_size = 6)
+  gt <- ggplot2::ggplotGrob(p)
+  tree <- NULL
+  walk <- function(g) {
+    if (inherits(g, "dirtreeGrob")) tree <<- g
+    if (!is.null(g$children)) lapply(g$children, walk)
+    if (!is.null(g$grobs)) lapply(g$grobs, walk)
+  }
+  walk(gt)
+  expect_false(is.null(tree))
+  expect_false(isTRUE(tree$vertical))
+  txt <- tree$children[[3]]$children[[1]]
+  expect_true(all(as.numeric(txt$rot) == 90)) # rotated; the y plot (rot 0) pins the other side
+})

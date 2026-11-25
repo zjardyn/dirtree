@@ -9,7 +9,8 @@
 #' Directory-style taxonomy tree as an axis guide
 #'
 #' `guide_dirtree()` replaces the plain text labels of a discrete position
-#' scale with a directory-style tree (rank columns, `|_` connectors,
+#' scale with a directory-style tree (rank columns, elbow connectors that
+#' drop from each parent's trunk into its children's labels,
 #' `p_`/`c_`/`o_`/`f_`/`g_` prefixes, ` × N` rollup counts (`n > 1`, at any
 #' rank — the gold generator marks `f_Pirellulaceae × 2` above its child
 #' row). Build the node table with [dirtree_data()], plot on its

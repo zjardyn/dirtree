@@ -18,10 +18,14 @@ sed -i 's/mult <- ifelse(n > 1L, paste0(" \\u00d7 ", n), "")/mult <- ifelse(n > 
 grep -q "max(levels)" R/guide.R && run "M1 guide x-N leaf-only"
 
 # M2: root trunk branch removed (forest rule dropped)
-sed -i 's/if (length(root_blk)) {/if (FALSE) {/' R/tree.R
+sed -i 's/if (any(!kid)) {/if (FALSE) {/' R/tree.R
 grep -q "if (FALSE) {" R/tree.R && run "M2 root-trunk removed"
 
 # M3: nodes = NULL guard removed
 sed -i 's/if (is.null(nodes)) {/if (FALSE) {/' R/guide.R
 grep -q "if (FALSE) {" R/guide.R && run "M3 nodes-guard removed"
+
+# M4: guide forces vertical=TRUE (orientation forwarding broken toward y)
+sed -i 's/vertical = isTRUE(params\$vertical)/vertical = TRUE/' R/guide.R
+grep -q "vertical = TRUE)" R/guide.R && run "M4 guide vertical forced TRUE"
 echo "done"

@@ -10,4 +10,6 @@
   trunk spans first root to last root's arm; block trunks hang from the
   parent's box bottom down the children's column to the last child's arm.
   Typewriter labels with italic genus/species; rules 0.35 pt (`\DTsetlength`
-  values from the gold generator).
+  values from the gold generator), floored to a 0.5 pt on-screen hairline so
+  the 1 em connector arms stay visible at PNG export widths (`min_lwd = 0`
+  restores the print-exact width).

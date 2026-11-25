@@ -60,9 +60,12 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y1 = py(ly$trunk$y1, ly$trunk$x),
     gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
   )
-  # Connector arm into each node's label (gold / dtx:757-768): the horizontal
-  # 1 em rule on the baseline row, from the node's own corner column. The
-  # first row (first root) is unconnected; layout marks it show = FALSE.
+  # Connector arm into each node's label (gold / dtx:757-768): the 1 em rule
+  # from the node's own corner column toward the label. Layout's tick `x*`
+  # are DEPTHS from the axis line; px()/py() map a (row, depth) point to the
+  # axis frame, so on the x-axis the arm becomes the vertical drop onto the
+  # label column. The first row (first root) is unconnected; layout marks it
+  # show = FALSE.
   show <- ly$tick$show
   hrule <- grid::segmentsGrob(
     x0 = px(ly$tick$y0[show], ly$tick$x0[show]),
@@ -146,17 +149,23 @@ widthDetails.dirtreeGrob <- function(x) {
 }
 
 #' Rule gpar: thin butt-capped lines inheriting colour from the theme text,
-#' drawn under the labels. Width is the geom's rule (dtx-exact 0.35pt
-#' default), unless the theme text carries its own linewidth.
+#' drawn under the labels. Width is the geom's rule (dtx-exact 0.35 pt
+#' default) with a hard floor of `min_lwd` (default 0.5 pt, ~1 px at 96 dpi:
+#' grid rasterizes sub-0.5 pt as faint grey and the 1 em arms vanish, while
+#' the gold's rules always rasterize to a full-ink hairline). `min_lwd = 0`
+#' restores the physically exact dtx width for print devices. The theme text
+#' cannot override the floor; a theme linewidth is honoured, then floored.
 #' @keywords internal
 #' @noRd
-rule_gp <- function(gp, rule = NULL) {
-  g <- grid::gpar(linewidth = (rule %||% 0.4 / 72.27) * 72.27,
+rule_gp <- function(gp, rule = NULL, min_lwd = 0.5) {
+  g <- grid::gpar(lwd = max((rule %||% (0.4 / 72.27)) * 72.27, min_lwd),
                   lineend = "butt", linejoin = "mitre")
   if (!is.null(gp)) {
-    common <- intersect(names(gp), names(g))
-    g[common] <- gp[common]
-    g$col <- gp$col %||% gp$colour %||% g$col
+    set <- function(nm) if (!is.null(gp[[nm]])) gp[[nm]] else g[[nm]]
+    g$col <- set("col") %||% set("colour") %||% g$col
+    if (!is.null(gp$lwd)) g$lwd <- gp$lwd
+    if (!is.null(gp$linewidth)) g$linewidth <- gp$linewidth
   }
+  g$lwd <- max(as.numeric(g$lwd), min_lwd)
   g
 }

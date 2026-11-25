@@ -1,8 +1,10 @@
 # dirtree
 
 Directory-style taxonomy trees as ggplot axis labels. `guide_dirtree()` turns a
-discrete axis into a LaTeX-`dirtree`-style hierarchy: rank columns, `|_` elbow
-connectors, continuing tees, `p_`/`c_`/`o_`/`f_`/`g_` prefixes, and `× N`
+discrete axis into a LaTeX-`dirtree`-style hierarchy: rank columns, true
+tree connectors (a vertical trunk down the children's column with a short
+arm into each label, ├/└ style; one root trunk spans all roots),
+`p_`/`c_`/`o_`/`f_`/`g_` prefixes, and `× N`
 collapse counts on rollups (` × N`, any rank with `n > 1`).
 
     library(dirtree)

@@ -32,7 +32,8 @@ supplying them at all (any value, including \code{NULL}) errors.}
 }
 \description{
 \code{guide_dirtree()} replaces the plain text labels of a discrete position
-scale with a directory-style tree (rank columns, \verb{|_} connectors,
+scale with a directory-style tree (rank columns, elbow connectors that
+drop from each parent's trunk into its children's labels,
 \code{p_}/\code{c_}/\code{o_}/\code{f_}/\code{g_} prefixes, \verb{ × N} rollup counts (\code{n > 1}, at any
 rank — the gold generator marks \verb{f_Pirellulaceae × 2} above its child
 row). Build the node table with \code{\link[=dirtree_data]{dirtree_data()}}, plot on its
