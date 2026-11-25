@@ -169,7 +169,7 @@ test_that("the grob forwards `vertical`: x-axis arms are depth-only drops", {
   d <- dirtree_data(toy_lineages())
   pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
   g <- dirtree_grob(d, as.character(d$node_key), pos = pos, vertical = FALSE)
-  hr <- Filter(function(x) identical(x$name, "dirtree-rules"), g$children)[[2]]
+  hr <- Filter(function(x) identical(x$name, "dirtree-arms"), g$children)[[1]]
   x0 <- grid::convertX(hr$x0, "inches", valueOnly = TRUE)
   x1 <- grid::convertX(hr$x1, "inches", valueOnly = TRUE)
   y0 <- grid::convertY(hr$y0, "inches", valueOnly = TRUE)
@@ -179,6 +179,16 @@ test_that("the grob forwards `vertical`: x-axis arms are depth-only drops", {
   expect_equal(length(x0), sum(lay$tick$show))       # row 1 unconnected
   expect_true(all(abs(x0 - x1) < 1e-6))              # depth-only arms
   expect_equal(sort(unique(round(abs(y0 - y1), 8))), rep(em, 1))  # 1 em spans
+})
+
+test_that("grob children have unique names", {
+  # Grid resolves gTree children by name: with duplicated child names the
+  # second child is never drawn (the arm child used to alias the trunk's
+  # 'dirtree-rules' name and silently vanish from every render).
+  d <- dirtree_data(toy_lineages())
+  g <- dirtree_grob(d, dirtree_labels(d), pos = (seq_len(nrow(d)) - 0.5) / nrow(d))
+  nms <- vapply(g$children, function(x) x$name, character(1))
+  expect_false(any(duplicated(nms)))
 })
 
 test_that("labels use the gold typography: mono family, italic genus/species", {
