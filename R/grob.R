@@ -5,11 +5,14 @@
 # heightDetails/widthDetails methods: a bare gTree measures 0, and ggplot2
 # reserves the axis band from the measured size (plan round 2, MAJOR-B).
 #
-# Connector shape (dirtree.dtx:646-773, transcribed): a vertical trunk rule
-# at the parent's rank column from the parent's baseline (+0.5 row for first
-# children) to the farthest child; at each node's row a horizontal rule of
-# 1 em, then 0.2 em gap, then the label. Roots hang off a free trunk at
-# pitch/2. On the x-axis labels are rotated 90 deg (ladder rows are
+# Connector shape (dirtree.dtx:646-773, transcribed) is axis-aware: a trunk
+# rule runs along the parent's rank column across its children's block. At
+# each node the leg into the label turns the dtx corner at the node's own
+# trunk column: on the y-axis a horizontal rule from the parent's trunk
+# across 1 em, then 0.2 em gap, then the label (the dtx elbow); on the
+# x-axis the tree is rotated 90 deg and the leg drops vertically from the
+# (horizontal) parent trunk into the label corner. Roots hang off a free
+# trunk at pitch/2. On the x-axis labels are rotated 90 deg (ladder rows are
 # panel-width/40 at 40 breaks — horizontal labels collide); on the y-axis
 # they are horizontal.
 

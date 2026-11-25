@@ -114,3 +114,45 @@ test_that("root trunk spans first..last root at pitch/2 (B4)", {
     any(lay$tick$y0 == p & lay$tick$x0 == em * 0.7), TRUE)
   expect_true(all(root_rows))
 })
+
+test_that("connector legs land on the dtx corner on both axes (B1)", {
+  # The leg's trunk end is the PARENT's column (roots: the free trunk at
+  # 0.7em); the y-axis elbow runs to column + 1 em (roots: to the label
+  # corner at column + 1.2 em); the x-axis leg drops to the label corner.
+  # Regression: a scalar-`ifelse(vertical, ...)` recycled the ROOT's value
+  # over every row, sending all legs to one column.
+  d <- dirtree_data(toy_lineages())
+  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  em <- dirtree:::dirtree_geom()$em
+  cp <- as.integer(d$parent)
+  x_conn_em <- ifelse(d$level == 0L, 0.7, d$level * 1.4 + 0.2)
+  par_em <- ifelse(is.na(cp), 0.7, x_conn_em[ifelse(is.na(cp), 1L, cp)])
+  ly_y <- dirtree:::dirtree_layout(d, pos, vertical = TRUE)
+  ly_x <- dirtree:::dirtree_layout(d, pos, vertical = FALSE)
+  expect_equal(ly_y$tick$x0, em * par_em, tolerance = 1e-8)
+  expect_equal(ly_x$tick$x0, em * par_em, tolerance = 1e-8)
+  expect_equal(ly_y$tick$x1,
+               em * ifelse(d$level == 0L, x_conn_em + 1.2, x_conn_em + 1),
+               tolerance = 1e-8)
+  expect_equal(ly_x$tick$x1, em * (x_conn_em + 1.2), tolerance = 1e-8)
+  # vectorization guard: legs at different ranks end at different depths
+  expect_gt(length(unique(round(ly_y$tick$x1 / em, 6))), 2L)
+})
+
+test_that("labels are anchored at their column corner and grow away (B1)", {
+  # hjust = 1 (anchor at the near end) + band = max(x_label + len) + sep:
+  # the label occupies [column + 1.2 em, + len], never crossing shallower
+  # trunks.
+  d <- dirtree_data(toy_lineages())
+  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  lab <- as.character(d$node_key)
+  g <- dirtree_grob(d, lab, pos = pos, vertical = TRUE)
+  txts <- unlist(lapply(find_child(g, "dirtree-label"),
+                        function(t) t$children), recursive = FALSE)
+  expect_length(txts, 1L)                            # one textGrob, all rows
+  expect_equal(length(txts[[1L]]$label), nrow(d))
+  expect_equal(as.numeric(txts[[1L]]$hjust), 1)
+  tl <- nchar(lab) * 0.55 * 12 / 72.27
+  lay <- dirtree:::dirtree_layout(d, pos, text_len = tl, vertical = TRUE)
+  expect_equal(lay$band, max(lay$x_label + tl) + lay$geom$sep, tolerance = 1e-8)
+})

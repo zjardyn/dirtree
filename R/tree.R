@@ -140,17 +140,26 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     y0 = ifelse(stem0, stem_y(y0_blk), pos[y0_blk]),
     y1 = ifelse(stem1, stem_y(y1_blk), pos[y1_blk])
   )
-  # Connector into each node's label (dtx:763-764), expressed in the tree's
-  # own frame: a leg perpendicular to the trunks, from the parent's column
-  # into the label. On a bottom (x) axis the tree is rotated: trunks are
-  # horizontal and the leg drops straight from the trunk into the label
-  # corner. On a left (y) axis it is the LaTeX elbow: a horizontal 1 em rule
-  # from the trunk column, then the sep gap, then the label. For roots the
-  # leg ends at the label corner (pitch/2 -> pitch - width - sep).
+  # Connector into each node's label (dtx:757-768). The corner is at the
+  # node's trunk column x_conn: on a left (y) axis the elbow is the
+  # horizontal rule from the PARENT's trunk (x_conn - pitch = the parent's
+  # column) across 1 em to x_conn + width, then the sep gap, then the label
+  # at x_conn + 1.2 em. On a bottom (x) axis the tree is rotated: trunks are
+  # horizontal and the leg is the vertical drop from the parent's trunk
+  # depth (x_conn - pitch) into the label corner (x_label) at the node's
+  # row. Roots hang off the free trunk at pitch/2. `vertical` is scalar, so
+  # the selection is vectorized over rows with rep().
+  # Trunk end of the leg: the parent's own trunk column (roots' parent is
+  # the free trunk at pitch/2).
+  par_col <- ifelse(is.na(cp), geom$pitch / 2,
+                    x_conn[ifelse(is.na(cp), 1L, cp)])
   tick <- list(
-    x0 = x_conn,
-    x1 = ifelse(lvl == 0L, x_label,
-                ifelse(vertical, x_rule_end, x_conn)),
+    x0 = par_col,
+    x1 = ifelse(rep(vertical, n),
+                ifelse(lvl == 0L, x_label, x_rule_end), x_label),
+    # y0 is the axis-agnostic "trunk depth" of the leg: for the rotated
+    # x-axis the leg spans x0 -> x1 in depth; for the y-axis the elbow is
+    # drawn at the node's own row (y0 == y1 == pos).
     y0 = pos, y1 = pos
   )
   list(
