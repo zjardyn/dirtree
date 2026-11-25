@@ -3388,3 +3388,92 @@ begin installing package ‘miniUI’
 ** testing if installed package can be loaded from final location
 ** testing if installed package keeps a record of temporary installation path
 * DONE (miniUI)
+* installing *source* package ‘ragg’ ...
+** this is package ‘ragg’ version ‘1.5.2’
+** package ‘ragg’ successfully unpacked and MD5 sums checked
+** using staged installation
+Found pkg-config cflags and libs!
+Using PKG_CFLAGS=-I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp
+Using PKG_LIBS=-L/opt/local/lib -lfreetype -lbz2 -lbrotlidec -lbrotlicommon -lpng16 -lz -ltiff -lzstd -llzma -lLerc -ljpeg -ldeflate -lz -lzstd -pthread -llzma -pthread -lpthread -lLerc -ldeflate -lz -ljpeg -lwebpmux -lm -lwebp -lm -D_THREAD_SAFE -pthread -lsharpyuv -lm -D_THREAD_SAFE -pthread
+** libs
+using C++ compiler: ‘Apple clang version 17.0.0 (clang-1700.0.13.5)’
+using SDK: ‘MacOSX15.5.sdk’
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c capture_dev.cpp -o capture_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c init.cpp -o init.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c jpeg_dev.cpp -o jpeg_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c png_dev.cpp -o png_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c ppm_dev.cpp -o ppm_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c record_dev.cpp -o record_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c tiff_dev.cpp -o tiff_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c webp_anim_dev.cpp -o webp_anim_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c webp_dev.cpp -o webp_dev.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_curves.cpp -o agg/src/agg_curves.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_font_freetype.cpp -o agg/src/agg_font_freetype.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_image_filters.cpp -o agg/src/agg_image_filters.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_trans_affine.cpp -o agg/src/agg_trans_affine.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_vcgen_dash.cpp -o agg/src/agg_vcgen_dash.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I./agg/include -I/opt/local/include/freetype2 -I/opt/local/include -I/opt/local/include/libpng16 -I/opt/local/include -I/opt/local/include/webp -I'/Users/zjardynhood/Desktop/dirtree/.R/library/systemfonts/include' -I'/Users/zjardynhood/Desktop/dirtree/.R/library/textshaping/include' -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include    -fPIC  -g -O2   -c agg/src/agg_vcgen_stroke.cpp -o agg/src/agg_vcgen_stroke.o
+ar rcs agg/libstatagg.a agg/src/agg_curves.o agg/src/agg_font_freetype.o agg/src/agg_image_filters.o agg/src/agg_trans_affine.o agg/src/agg_vcgen_dash.o agg/src/agg_vcgen_stroke.o
+clang++ -std=gnu++20 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -L/opt/homebrew/Cellar/r/4.6.2/lib/R/lib -L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/xz/lib -L/opt/homebrew/lib -o ragg.so capture_dev.o init.o jpeg_dev.o png_dev.o ppm_dev.o record_dev.o tiff_dev.o webp_anim_dev.o webp_dev.o -Lagg -lstatagg -L/opt/local/lib -lfreetype -lbz2 -lbrotlidec -lbrotlicommon -lpng16 -lz -ltiff -lzstd -llzma -lLerc -ljpeg -ldeflate -lz -lzstd -pthread -llzma -pthread -lpthread -lLerc -ldeflate -lz -ljpeg -lwebpmux -lm -lwebp -lm -D_THREAD_SAFE -pthread -lsharpyuv -lm -D_THREAD_SAFE -pthread -L/opt/homebrew/Cellar/r/4.6.2/lib/R/lib -lR
+ld: warning: ignoring duplicate libraries: '-lLerc', '-ldeflate', '-ljpeg', '-llzma', '-lm', '-lz', '-lzstd'
+installing to /Users/zjardynhood/Desktop/dirtree/.R/library/00LOCK-ragg/00new/ragg/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (ragg)
+make: Target `all' not remade because of errors.
+* installing *source* package ‘xml2’ ...
+** this is package ‘xml2’ version ‘1.6.0’
+** package ‘xml2’ successfully unpacked and MD5 sums checked
+** using staged installation
+Found pkg-config cflags and libs!
+Using PKG_CFLAGS=-I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include
+Using PKG_LIBS=-L/Users/zjardynhood/miniconda3/lib -lxml2 -L/Users/zjardynhood/miniconda3/lib -lz -L/Users/zjardynhood/miniconda3/lib -llzma -L/Users/zjardynhood/miniconda3/lib -licui18n -licuuc -licudata -L/Users/zjardynhood/miniconda3/lib -liconv
+** libs
+using C compiler: ‘Apple clang version 17.0.0 (clang-1700.0.13.5)’
+using C++ compiler: ‘Apple clang version 17.0.0 (clang-1700.0.13.5)’
+using SDK: ‘MacOSX15.5.sdk’
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c connection.cpp -o connection.o
+clang -std=gnu23 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2  -c init.c -o init.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_doc.cpp -o xml2_doc.o
+clang -std=gnu23 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2  -c xml2_init.c -o xml2_init.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_namespace.cpp -o xml2_namespace.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_node.cpp -o xml2_node.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_output.cpp -o xml2_output.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_schema.cpp -o xml2_schema.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_url.cpp -o xml2_url.o
+clang++ -std=gnu++20 -I"/opt/homebrew/Cellar/r/4.6.2/lib/R/include" -DNDEBUG -I../inst/include -I/Users/zjardynhood/miniconda3/include/libxml2 -I/Users/zjardynhood/miniconda3/include -DUCHAR_TYPE=wchar_t -DU_SHOW_CPLUSPLUS_API=0 -DSTRICT_R_HEADERS -DR_NO_REMAP  -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/xz/include -I/opt/homebrew/include   -fvisibility=hidden -fPIC  -g -O2   -c xml2_xpath.cpp -o xml2_xpath.o
+clang++ -std=gnu++20 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -L/opt/homebrew/Cellar/r/4.6.2/lib/R/lib -L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/xz/lib -L/opt/homebrew/lib -o xml2.so connection.o init.o xml2_doc.o xml2_init.o xml2_namespace.o xml2_node.o xml2_output.o xml2_schema.o xml2_url.o xml2_xpath.o -L/Users/zjardynhood/miniconda3/lib -lxml2 -L/Users/zjardynhood/miniconda3/lib -lz -L/Users/zjardynhood/miniconda3/lib -llzma -L/Users/zjardynhood/miniconda3/lib -licui18n -licuuc -licudata -L/Users/zjardynhood/miniconda3/lib -liconv -L/opt/homebrew/Cellar/r/4.6.2/lib/R/lib -lR
+installing to /Users/zjardynhood/Desktop/dirtree/.R/library/00LOCK-xml2/00new/xml2/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+Error: package or namespace load failed for ‘xml2’ in dyn.load(file, DLLpath = DLLpath, ...):
+ unable to load shared object '/Users/zjardynhood/Desktop/dirtree/.R/library/00LOCK-xml2/00new/xml2/libs/xml2.so':
+  dlopen(/Users/zjardynhood/Desktop/dirtree/.R/library/00LOCK-xml2/00new/xml2/libs/xml2.so, 0x0006): Library not loaded: @rpath/libxml2.2.dylib
+  Referenced from: <388923F4-8F72-3C50-9191-35497FE98AF8> /Users/zjardynhood/Desktop/dirtree/.R/library/00LOCK-xml2/00new/xml2/libs/xml2.so
+  Reason: tried: '/opt/homebrew/Cellar/r/4.6.2/lib/R/lib/libxml2.2.dylib' (no such file)
+Error: loading failed
+Execution halted
+ERROR: loading failed
+* removing ‘/Users/zjardynhood/Desktop/dirtree/.R/library/xml2’
+
+The downloaded source packages are in
+	‘/private/var/folders/dg/t73t6ml565z5qdy0ncvs23gh0000gn/T/RtmpqrENmU/downloaded_packages’
+   ggplot2      rlang      vctrs        cli      withr   devtools   roxygen2 
+      TRUE       TRUE       TRUE       TRUE       TRUE      FALSE      FALSE 
+  testthat    pkgload urlchecker     styler   spelling 
+      TRUE       TRUE      FALSE       TRUE      FALSE 
