@@ -88,9 +88,9 @@ expect_seg <- n_trunk + n_tick
 grat(n_seg == expect_seg,
      sprintf("connector segments: rendered %d == expected %d (trunks %d + rules %d)",
              n_seg, expect_seg, n_trunk, n_tick))
-# Root trunk exists in the rendered grob. x-axis orientation: trunks are
-# vertical at depth_y(pitch/2) = "1npc - <pitch/2>inches" (grid unit
-# arithmetic: compare the rendered unit strings).
+# Root trunk exists in the rendered grob. x-axis orientation (vertical =
+# FALSE): trunks are HORIZONTAL at depth_y(pitch/2) = "1npc - <pitch/2>
+# inches" (grid unit arithmetic: compare the rendered unit strings).
 pitch2 <- as.numeric(lay$geom$pitch / 2)
 ty <- format(grid::unit(1, "npc") - grid::unit(pitch2, "inches"))
 root_trunk_drawn <- any(vapply(segs, function(s)

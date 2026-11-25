@@ -156,3 +156,25 @@ test_that("labels are anchored at their column corner and grow away (B1)", {
   lay <- dirtree:::dirtree_layout(d, pos, text_len = tl, vertical = TRUE)
   expect_equal(lay$band, max(lay$x_label + tl) + lay$geom$sep, tolerance = 1e-8)
 })
+
+test_that("the grob forwards `vertical`: x-axis legs drop to the label corner", {
+  # Guards the grob's layout call: with vertical = FALSE the legs travel in
+  # depth only (x0 == x1 along the axis) and span parent trunk -> label
+  # corner, i.e. depth x1 - x0. Forcing the y-axis elbow here leaves the
+  # legs horizontal and fails.
+  d <- dirtree_data(toy_lineages())
+  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  g <- dirtree_grob(d, as.character(d$node_key), pos = pos, vertical = FALSE)
+  hr <- Filter(function(x) identical(x$name, "dirtree-rules"), g$children)[[2]]
+  x0 <- grid::convertX(hr$x0, "inches", valueOnly = TRUE)
+  x1 <- grid::convertX(hr$x1, "inches", valueOnly = TRUE)
+  y0 <- grid::convertY(hr$y0, "inches", valueOnly = TRUE)
+  y1 <- grid::convertY(hr$y1, "inches", valueOnly = TRUE)
+  lay <- dirtree:::dirtree_layout(d, pos, vertical = FALSE)
+  em <- lay$geom$em
+  roots <- which(d$level == 0L)
+  expect_true(all(abs(x0 - x1) < 1e-6))                     # depth-only legs
+  expect_equal(sort(unique(round(y0 - y1, 8))),
+               sort(unique(round(lay$tick$x1 - lay$tick$x0, 8))))
+  expect_equal(round(y0[roots] - y1[roots], 8), rep(1.2 * em, length(roots)))
+})
