@@ -10,3 +10,5 @@ template/
 .dev/*-out.txt
 testthat-problems.rds
 _problems/
+dirtree_*.tar.gz
+dirtree.Rcheck/

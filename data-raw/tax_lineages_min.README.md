@@ -16,7 +16,8 @@ suitable for building branched trees).
     blank where the source had no species assignment or only an `uncultured_*` placeholder
     (5 of 9 18S rows carry a species).
 - **Branching:** 7 phyla, 11 classes, 17 orders, 19 families, 19 genera over 19
-  rows (distinct labels; 16S subset 4/6/10/10/10, 18S subset 3/5/7/9/9). Every
+  rows (distinct labels; 16S subset 4/6/10/10/10, 18S subset 3/5/7/9/9 +
+  species on 5 of 9 rows). Every
   genus and every family label is unique, so the hierarchy branches from phylum
   down (e.g. Pseudomonadota → 2 classes → 4 orders; Amoebozoa → 2 classes →
   3 orders). Two cross-rank overlaps exist: `Vampirovibrionales` is both the
