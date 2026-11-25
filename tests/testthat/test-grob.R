@@ -238,9 +238,15 @@ test_that("rules draw at the dtx width, floored to a visible hairline", {
   d <- dirtree_data(toy_lineages())
   g <- dirtree_grob(d, dirtree_labels(d),
                     pos = (seq_len(nrow(d)) - 0.5) / nrow(d), vertical = TRUE)
-  # grid consumes gpar field `lwd` (points); a stray `linewidth` never renders
+  # grid consumes gpar field `lwd` (points); `linewidth` is never set and
+  # does not render for grid lines (measured: 5 pt via linewidth leaves the
+  # default width)
   expect_equal(unique(g$children[[1]]$gp$lwd), 0.5, tolerance = 1e-6)
   expect_null(g$children[[1]]$gp$linewidth)
+  # arms share the trunk width — a per-child override must not dodge the floor
+  expect_equal(unique(g$children[[2]]$gp$lwd), 0.5, tolerance = 1e-6)
+  # y-axis labels are upright (the x-axis test pins rot 90 on its side)
+  expect_true(all(as.numeric(g$children[[3]]$children[[1]]$rot) == 0))
   # the dtx-exact 0.35 pt is sub-pixel on PNG export (arms vanish); the floor
   # keeps a hairline, and min_lwd = 0 restores the print-exact width
   expect_equal(dirtree:::rule_gp(NULL, 0.35 / 72.27, min_lwd = 0)$lwd,

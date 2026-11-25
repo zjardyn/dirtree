@@ -153,8 +153,9 @@ widthDetails.dirtreeGrob <- function(x) {
 #' default) with a hard floor of `min_lwd` (default 0.5 pt, ~1 px at 96 dpi:
 #' grid rasterizes sub-0.5 pt as faint grey and the 1 em arms vanish, while
 #' the gold's rules always rasterize to a full-ink hairline). `min_lwd = 0`
-#' restores the physically exact dtx width for print devices. The theme text
-#' cannot override the floor; a theme linewidth is honoured, then floored.
+#' restores the physically exact dtx width for print devices. A theme `lwd`
+#' is honoured, then floored. grid consumes the `lwd` field; `linewidth` is
+#' never set here because it does not render for grid lines.
 #' @keywords internal
 #' @noRd
 rule_gp <- function(gp, rule = NULL, min_lwd = 0.5) {
@@ -164,7 +165,6 @@ rule_gp <- function(gp, rule = NULL, min_lwd = 0.5) {
     set <- function(nm) if (!is.null(gp[[nm]])) gp[[nm]] else g[[nm]]
     g$col <- set("col") %||% set("colour") %||% g$col
     if (!is.null(gp$lwd)) g$lwd <- gp$lwd
-    if (!is.null(gp$linewidth)) g$linewidth <- gp$linewidth
   }
   g$lwd <- max(as.numeric(g$lwd), min_lwd)
   g
