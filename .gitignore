@@ -4,3 +4,11 @@
 *.Rproj
 Rplots.pdf
 template/
+.DS_Store
+.dev/*.log
+.R/
+.dev/*-out.txt
+testthat-problems.rds
+_problems/
+dirtree_*.tar.gz
+dirtree.Rcheck/

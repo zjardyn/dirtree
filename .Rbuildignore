@@ -1,0 +1,12 @@
+data-raw/
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.plans$
+^\.workflow$
+^template$
+^examples$
+^README\.md$
+^\.github$
+^\.R$
+^\.dev$
+scratch/
