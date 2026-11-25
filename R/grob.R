@@ -89,7 +89,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     # the axis line.
     hjust = if (vertical) 0 else 1,
     vjust = 0.5,
-    rot = if (vertical) 0 else 45,
+    rot = if (vertical) 0 else 90,
     gp = gp, name = "label"
   )
   grid::gTree(
