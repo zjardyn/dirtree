@@ -4,3 +4,5 @@
 *.Rproj
 Rplots.pdf
 template/
+.DS_Store
+.dev/*.log

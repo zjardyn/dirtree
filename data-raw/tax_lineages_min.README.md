@@ -15,7 +15,9 @@ suitable for building branched trees).
   - `Species` — present **only for 18S** rows (the 16S source table has no species rank);
     blank where the source had no species assignment or only an `uncultured_*` placeholder
     (5 of 9 18S rows carry a species).
-- **Branching:** 7 phyla, 6 classes, 14 orders, 19 families, 19 genera — every
-  genus unique, families unique, so the hierarchy branches cleanly from phylum down
+- **Branching:** 7 phyla, 6 classes, 14 orders, 18 distinct family labels over 19 rows —
+  one family string (`Vampirovibrionales`) doubles as the order and family of its row,
+  a within-row rank shift in the SILVA assignment kept because the lineage is otherwise
+  complete. Every genus is unique, so the hierarchy branches from phylum down
   (e.g. Pseudomonadota → 2 classes → 4 orders; Amoebozoa → 2 classes → 3 orders).
 - No missing values; no `uncultured_*`/rank-shifted placeholders.

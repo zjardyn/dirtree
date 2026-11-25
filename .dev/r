@@ -1,0 +1,6 @@
+#!/bin/sh
+# Run R inside the dirtree dev container with the repo mounted at the same path.
+# Usage: .dev/r Rscript <script.R>   (or any command: .dev/r R CMD ...)
+set -e
+exec docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
+  -v "$PWD:$PWD" -w "$PWD" dirtree-dev "$@"
