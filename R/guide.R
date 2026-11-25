@@ -174,6 +174,5 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
 #' @noRd
 .dirtree_prefixed <- function(labels, levels, prefixes, n) {
   pre <- .dirtree_prefix_vec(levels, prefixes)
-  mult <- ifelse(n > 1L, paste0(" \u00d7 ", n), "")
-  paste0(pre, labels, mult)
+  paste0(pre, labels)
 }

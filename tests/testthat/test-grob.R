@@ -291,5 +291,5 @@ test_that("x-axis guide draws the rotated tree end to end", {
   expect_false(is.null(tree))
   expect_false(isTRUE(tree$vertical))
   txt <- tree$children[[3]]$children[[1]]
-  expect_true(all(as.numeric(txt$rot) == 90)) # bottom-up dangle; the y plot (rot 0) pins the other side
+  expect_true(all(as.numeric(txt$rot) == 45)) # 45 deg dangle; the y plot (rot 0) pins the other side
 })

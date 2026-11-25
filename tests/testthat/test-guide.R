@@ -33,19 +33,18 @@ test_that("guide_dirtree() builds a guide from the node table", {
   expect_identical(g$params$nodes$node_key, d$node_key)
 })
 
-test_that("plot builds; axis labels are re-prefixed, rollups carry × N at any rank", {
+test_that("plot builds; axis labels are re-prefixed (rollup counts shelved for now)", {
   tl <- rbind(toy_lineages(), toy_lineages()[1, ])  # G1 duplicated: F1 n = 2
   d <- dirtree_data(tl)
   gl <- ggplot2::ggplotGrob(plot_nodes(d))
   expect_s3_class(gl, "gtable")
   txt <- rendered_text(gl)
-  # The × N contract is guarded on the RENDERED axis (B5/sentinel M2): an
-  # internal rollup must print a multiplier, leaves with n > 1 too.
-  # Duplicated G1: F1 subtree = {G1, G1, G2} -> n = 3; P1 = 3; G2 stays 1.
-  expect_true(any(grepl("f_F1 \u00d7 3", txt, fixed = TRUE)))
-  expect_true(any(grepl("p_P1 \u00d7 3", txt, fixed = TRUE)))
-  expect_true(any(grepl("g_G1 \u00d7 2", txt, fixed = TRUE)))
-  expect_false(any(grepl("g_G2 \u00d7", txt, fixed = TRUE)))
+  # The × N multiplier is shelved at the user's request for the time being:
+  # labels carry only the rank prefix, leaves included.
+  expect_true(any(grepl("f_F1", txt, fixed = TRUE)))
+  expect_true(any(grepl("p_P1", txt, fixed = TRUE)))
+  expect_true(any(grepl("g_G1", txt, fixed = TRUE)))
+  expect_false(any(grepl("\u00d7", txt, fixed = TRUE)))
 })
 
 test_that("composed axis band is sized by the tree (band below panel > plain axis)", {

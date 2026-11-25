@@ -196,8 +196,5 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
 #' @keywords internal
 #' @noRd
 dirtree_labels <- function(nodes, prefixes = c("p_", "c_", "o_", "f_", "g_", "s_")) {
-  paste0(
-    .dirtree_prefix_vec(nodes$level, prefixes), nodes$label,
-    ifelse(nodes$n > 1L, paste0(" \u00d7 ", nodes$n), "")
-  )
+  paste0(.dirtree_prefix_vec(nodes$level, prefixes), nodes$label)
 }
