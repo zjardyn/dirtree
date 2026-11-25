@@ -55,7 +55,9 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     label = labels,
     x = if (vertical) depth_x(ly$x_label) else along(ly$x),
     y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
-    hjust = 0,
+    # The label starts 1.2 em from its own trunk column and extends away
+    # from the axis line (the gold model): anchored at its near end.
+    hjust = 1,
     vjust = 0.5,
     rot = if (vertical) 0 else 90,
     gp = gp, name = "label"

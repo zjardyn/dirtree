@@ -80,11 +80,11 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   # baseline otherwise.
   stem <- 0.5 * geom$row
   depth <- max(x_label) + geom$sep                   # rank spread (perpendicular)
-  band <- if (is.null(text_len)) {
-    depth
-  } else {
-    max(x_conn + as.numeric(text_len)) + geom$sep
-  }
+  # The label occupies [x_label, x_label + len] in the depth direction: it
+  # starts 1.2 em from its own trunk column and extends AWAY from the axis
+  # line (the gold model — labels never cross shallower rank columns).
+  x_label_end <- x_label + (if (is.null(text_len)) 0 else as.numeric(text_len))
+  band <- max(x_label_end) + geom$sep
 
   # Connector parent: the node table's parent (the guide remaps it to the
   # sliced break subset; a valid depth-first table's parent is the nearest
@@ -141,9 +141,10 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     y1 = ifelse(stem1, stem_y(y1_blk), pos[y1_blk])
   )
   # Elbow per node: horizontal rule width 1 em + sep gap, at the node's row
-  # from its trunk column (dtx:763-764). Roots' rule spans pitch/2 -> label.
+  # from its trunk column (dtx:763-764). For roots the rule ends at the label
+  # corner (pitch/2 -> pitch - width - sep), not a full 1 em.
   tick <- list(
-    x0 = x_conn, x1 = x_rule_end,
+    x0 = x_conn, x1 = ifelse(lvl == 0L, x_label, x_rule_end),
     y0 = pos, y1 = pos
   )
   list(
