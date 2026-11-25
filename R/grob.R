@@ -5,16 +5,16 @@
 # heightDetails/widthDetails methods: a bare gTree measures 0, and ggplot2
 # reserves the axis band from the measured size (plan round 2, MAJOR-B).
 #
-# Connector shape (dirtree.dtx:646-773, transcribed) is axis-aware: a trunk
-# rule runs along the parent's rank column across its children's block. At
-# each node the leg into the label turns the dtx corner at the node's own
-# trunk column: on the y-axis a horizontal rule from the parent's trunk
-# across 1 em, then 0.2 em gap, then the label (the dtx elbow); on the
-# x-axis the tree is rotated 90 deg and the leg drops vertically from the
-# (horizontal) parent trunk into the label corner. Roots hang off a free
-# trunk at pitch/2. On the x-axis labels are rotated 90 deg (ladder rows are
-# panel-width/40 at 40 breaks — horizontal labels collide); on the y-axis
-# they are horizontal.
+# Connector shape (gold-pixel model, see R/tree.R) is axis-aware: a block's
+# trunk hangs from the parent's box bottom down the children's corner column
+# to the last child's arm; each node (except the first row) gets a horizontal
+# 1 em arm on its text baseline from its own corner column TOWARD the axis
+# line, then the 0.2 em gap, then the label growing toward the axis line
+# (tree outermost, labels between tree and panel, as in the gold). Roots
+# share their own corner column as a trunk spanning first root..last root's
+# arm. On the x-axis the tree is rotated 90 deg through the same coordinate
+# mapping; labels are rotated 90 deg there (ladder rows are panel-width/40
+# at 40 breaks — horizontal labels collide).
 
 dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
                         vertical = FALSE) {
@@ -22,7 +22,15 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   gp <- gp %||% grid::gpar()
   fontsize <- gp$fontsize %||% gp$size %||% 12
   geom <- geom %||% dirtree_geom(em_in = fontsize / 72.27)
-  text_len <- nchar(as.character(labels)) * 0.55 * fontsize / 72.27
+  # Gold typography: typewriter labels, genus/species NAMES italic
+  # (\texttt{g\_}{\itshape ...}). Courier advance width is exactly 0.6 em,
+  # so text_len is exact, not a heuristic.
+  face <- ifelse(grepl("^[gs]_", labels), "italic", "plain")
+  gp <- grid::gpar(
+    fontfamily = "mono", fontface = face, fontsize = fontsize,
+    col = gp$col %||% grid::gpar("col")$col
+  )
+  text_len <- nchar(as.character(labels)) * 0.6 * fontsize / 72.27
   ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom,
                        vertical = vertical)
   if (is.null(ly)) {
@@ -51,24 +59,25 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y1 = py(ly$trunk$y1, ly$trunk$x),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
-  # Leg into each node's label (dtx:763-764): the y-axis elbow is the
-  # horizontal 1 em rule from the trunk column; on the rotated x-axis the
-  # leg drops from the trunk depth into the label corner (x1 == x0 in the
-  # layout keeps the drop perpendicular to the horizontal trunks).
+  # Connector arm into each node's label (gold / dtx:757-768): the horizontal
+  # 1 em rule on the baseline row, from the node's own corner column. The
+  # first row (first root) is unconnected; layout marks it show = FALSE.
+  show <- ly$tick$show
   hrule <- grid::segmentsGrob(
-    x0 = px(ly$tick$y0, ly$tick$x0),
-    y0 = py(ly$tick$y0, ly$tick$x0),
-    x1 = px(ly$tick$y1, ly$tick$x1),
-    y1 = py(ly$tick$y1, ly$tick$x1),
+    x0 = px(ly$tick$y0[show], ly$tick$x0[show]),
+    y0 = py(ly$tick$y0[show], ly$tick$x0[show]),
+    x1 = px(ly$tick$y1[show], ly$tick$x1[show]),
+    y1 = py(ly$tick$y1[show], ly$tick$x1[show]),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
   txt <- grid::textGrob(
     label = labels,
     x = if (vertical) depth_x(ly$x_label) else along(ly$x),
     y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
-    # The label starts 1.2 em from its own trunk column and extends away
-    # from the axis line (the gold model): anchored at its near end.
-    hjust = 1,
+    # The label starts 1.2 em from its own trunk column on the AXIS side and
+    # grows toward the axis line (the gold model: tree outermost, labels
+    # between the tree and the panel).
+    hjust = 0,
     vjust = 0.5,
     rot = if (vertical) 0 else 90,
     gp = gp, name = "label"

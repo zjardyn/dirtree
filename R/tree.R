@@ -1,24 +1,26 @@
 # Tree geometry: node table + break positions -> drawing coordinates.
 #
-# Pure data: no grid, no ggplot2. The connector model transcribes the drawing
-# rules of the LaTeX dirtree package v0.32 (template/dirtree.dtx), whose
-# drawing loop (dtx:646-773) is:
+# Pure data: no grid, no ggplot2. The connector model reproduces the golden
+# standard (pixel-verified: gold-view.R / gold-bl.R dumps), which follows the
+# LaTeX dirtree package v0.32 drawing loop (template/dirtree.dtx:646-773):
 #   - DT@all = offset + width + sep = 0.2em + 1em + 0.2em = 1.4 em is the
-#     rank pitch (gold image: trunk columns 76 px apart, em = 54.3 px);
-#     a level-L node's vertical trunk rule stands at
-#     x = (L-1) * DT@all + offset                                   (dtx:666).
-#   - The rule runs from the connected node's (\DT@countiv: nearest
-#     preceding row with level <= L-1) baseline down +0.5 baselineskip,
-#     shortened by 0.5 baselineskip when the connection starts at a parent
-#     (first child of the block)                                      (dtx:736).
-#   - At the node's baseline: junction dot (1.6pt square, dropped in v1),
-#     a horizontal rule of width = 1em, kern sep = 0.2em, then the label
-#     (dtx:757-768) -> label starts 1.2 em right of the trunk column.
-#   - Row pitch = baselineskip; strut height 0.7 baselineskip.
-# Forest adaptation: the package has one root with no connector (dtx:602);
-# a taxonomic forest hangs its roots off a free trunk at pitch/2 spanning
-# first..last root (gold pixel analysis: one continuous rule at ~0.7 em
-# across all roots; plan round-2 BLOCKER-1).
+#     rank pitch (gold: trunk columns 76 px apart, em = 54.3 px). EVERY
+#     row's corner column, roots included, is
+#     x = level * DT@all + offset                        (dtx:666).
+#   - The connector arm is a horizontal rule of width = 1 em from the node's
+#     own corner column along the TEXT BASELINE (0.21 row under the slot
+#     centre of centred text), then kern sep, then the label — labels start
+#     1.2 em right of the corner column (dtx:757-768). The R axis model
+#     mirrors this: ranks descend toward the axis line, so arms and labels
+#     run toward the panel (the gold axis renders exactly that way). The
+#     first row overall (first root) is unconnected.
+#   - A block's trunk hangs from the PARENT'S TEXT BOX BOTTOM (0.44 row
+#     under the parent's centre) down the CHILDREN's corner column to the
+#     last child's arm — no stem past it (dtx:736). The roots share their
+#     own corner column (0.2 em) as trunk, from the first root's centre to
+#     the last root's arm (the last root is a child of that trunk).
+#   - Row pitch = baselineskip; strut height 0.7 baselineskip; no junction
+#     dots (gold dot-size 0).
 #
 # Coordinates are NORMALISED: "along" = position along the axis band (the
 # row slot, mapped to npc break positions by the caller), "depth" = rank
@@ -31,7 +33,7 @@
 #' @keywords internal
 #' @noRd
 dirtree_geom <- function(offset_em = 0.2, width_em = 1, sep_em = 0.2,
-                         rule_pt = 0.4, dot_pt = 1.6, row_bl = 1,
+                         rule_pt = 0.35, dot_pt = 1.6, row_bl = 1,
                          em_in = 12 / 72.27) {
   list(
     offset = offset_em * em_in,
@@ -63,28 +65,26 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   }
   lvl <- nodes$level
   max_lvl <- max(lvl)
-  # Trunk (elbow corner) column of a level-L node (dtx:666 phase,
-  # zero-based levels: the rule stands 0.2 em into the level's 1.4-em
-  # column); roots on the free trunk at pitch/2 (forest adaptation, gold
-  # leftmost rule).
-  x_conn <- ifelse(lvl == 0L, geom$pitch / 2,
-                   lvl * geom$pitch + geom$offset)
-  # Label starts width + sep (1.2 em) right of the trunk column (dtx:763-764);
-  # the horizontal rule spans from the column across width (1 em), the label
-  # follows after the sep gap.
-  x_rule_end <- x_conn + geom$width
-  x_label <- x_conn + geom$width + geom$sep
-  # dtx:736-747: the vertical rule reaches 0.5 baselineskip past the child's
-  # baseline; it starts 0.5 baselineskip under the parent's baseline when
-  # the parent heads the block (first child), and at the previous sibling's
-  # baseline otherwise.
-  stem <- 0.5 * geom$row
-  depth <- max(x_label) + geom$sep                   # rank spread (perpendicular)
-  # The label occupies [x_label, x_label + len] in the depth direction: it
-  # starts 1.2 em from its own trunk column and extends AWAY from the axis
-  # line (the gold model — labels never cross shallower rank columns).
-  x_label_end <- x_label + (if (is.null(text_len)) 0 else as.numeric(text_len))
-  band <- max(x_label_end) + geom$sep
+  # Gold orientation (pixel-verified): the root trunk is the OUTERMOST rule
+  # and ranks descend TOWARD the axis line — depth from the axis line is
+  # x_conn(L) = (max_lvl - L) * pitch + offset. The 1 em arm runs from the
+  # corner TOWARD the axis line (d - 1 em), then the sep gap, then the label
+  # growing toward the axis line (dtx:757-768; gold labels sit between the
+  # tree and the panel, the longest reaching the axis line). The whole tree
+  # is shifted outward by `shift` so the longest label ends flush with the
+  # axis line — the gold's proportion (tree, then labels, then bars).
+  x_conn <- (max_lvl - lvl) * geom$pitch + geom$offset
+  label_in <- if (is.null(text_len)) 0 else as.numeric(text_len)
+  shift <- if (is.null(text_len)) {
+    0
+  } else {
+    max(0, -min(x_conn - geom$width - geom$sep - label_in))
+  }
+  x_conn <- x_conn + shift
+  x_rule_end <- x_conn - geom$width
+  x_label <- x_conn - geom$width - geom$sep
+  depth <- max(x_conn) + geom$sep                    # rank spread (perpendicular)
+  band <- depth
 
   # Connector parent: the node table's parent (the guide remaps it to the
   # sliced break subset; a valid depth-first table's parent is the nearest
@@ -93,79 +93,61 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   cp <- as.integer(nodes$parent)
   p1 <- cp - 1L                                      # row before a block start
 
-  # dtx:736 stem: the vertical rule reaches 0.5 baselineskip PAST the last
-  # row it serves. Rows sit at break npc positions, so the baselineskip in
-  # npc is the row pitch; the along-axis travel direction is the row order.
-  dirn <- if (n > 1L && pos[n] != pos[1]) sign(pos[n] - pos[1]) else 1
-  pitch_npc <- if (n > 1L) median(abs(diff(sort(pos)))) else 0
-  stem_y <- function(row_i) pos[row_i] + dirn * 0.5 * pitch_npc
+  # Gold row-slot model (pixel-verified, gold-bl.R / gold-view.R dumps): the
+  # text baseline sits 0.21 row UNDER the slot centre (centred text, ink
+  # centre vs baseline), the connector arm lies ON that baseline; a block's
+  # trunk drops from the parent's box bottom (0.44 row under the parent's
+  # centre) to the LAST child's arm — no stem past it; the root trunk spans
+  # first root's centre to the last root's arm on the roots' corner column.
+  # Rows are axis npc; "under" is decreasing npc along the y-axis. Row units
+  # are ROWS (the gold's baselineskip), converted with the row pitch — in
+  # em units the arms/trunks sit a fraction of the label height off the
+  # baseline and the trunk bottoms fall short of the next row. The rotated
+  # x-axis has no along-axis baseline rule, so it keeps centred placement.
+  pitch_npc <- if (n > 1L) stats::median(abs(diff(sort(pos)))) else 0
+  arm_y <- if (vertical) pos - 0.21 * pitch_npc else pos
+  leg_top <- if (vertical) pos - 0.44 * pitch_npc else pos
+  root_top_y <- if (vertical) pos - 0.02 * pitch_npc else pos
 
   kid <- !is.na(cp)
   # Block membership: a child is the FIRST child of its parent if the
   # preceding row is not its sibling (parent heads the block, dtx:744).
   first_child <- kid & (seq_len(n) == 1L | is.na(p1) |
                           (p1 >= 1L & p1 <= n & cp[seq_len(n)][pmax(p1, 1L)] != cp))
-  last_child <- kid & !duplicated(cp, fromLast = TRUE)
 
-  # Trunk blocks: runs of consecutive rows sharing a connector-parent.
-  # NA-parent (root) rows are grouped too, so the root-trunk branch below
-  # is the one that implements the forest rule (a rootless block is dead code).
-  blocks <- .rle_rows(cp, cp_row = seq_len(n))
-  cp2 <- blocks$cp
-  nonroot <- !is.na(cp2)
-  farthest <- ifelse(
-    nonroot & abs(blocks$end - cp2) >= abs(blocks$start - cp2),
-    blocks$end, blocks$start
-  )
-  x_blk <- x_conn[blocks$cp]
-  y0_blk <- blocks$cp
-  y1_blk <- farthest
-  stem0 <- rep(FALSE, length(cp2))                   # extend past the y0 end
-  stem1 <- rep(TRUE, length(cp2))                    # extend past the far end
-  # Roots: the roots form one (contiguous, in tree order) NA-parent block;
-  # they share the free trunk at x = pitch/2, spanning first root's row to
-  # the last root's row + 0.5-row stem (the last root is a child of the
-  # free trunk, dtx:736), tee at every root.
-  root_blk <- which(blocks$root)
-  if (length(root_blk)) {
-    keep <- !blocks$root
-    x_blk <- c(x_blk[keep], geom$pitch / 2)
-    y0_blk <- c(y0_blk[keep], max(blocks$end[root_blk]))
-    y1_blk <- c(y1_blk[keep], min(blocks$start[root_blk]))
-    stem0 <- c(stem0[keep], TRUE)
-    stem1 <- c(stem1[keep], FALSE)                   # first root: no stem
+  # Trunk blocks: runs of consecutive rows sharing a connector-parent. Root
+  # (NA-parent) rows are NOT blocks — `rle()` never groups NA runs, so roots
+  # are excluded and the forest rule below draws the one root trunk.
+  kid_rows <- seq_len(n)[kid]
+  blocks <- .rle_rows(cp[kid_rows], cp_row = kid_rows)
+  x_blk <- x_conn[blocks$start]                       # the children's column
+  y0_blk <- leg_top[blocks$cp]                        # parent's box bottom
+  y1_blk <- arm_y[blocks$end]                         # last child's arm
+  # Roots share their own corner column as ONE trunk, from the first root's
+  # centre to the LAST root's arm (the last root is a child of that trunk,
+  # dtx:736) — spanning every root even when the subtrees interleave.
+  if (any(!kid)) {
+    x_blk <- c(x_blk, x_conn[1L])
+    y0_blk <- c(y0_blk, root_top_y[min(which(!kid))])
+    y1_blk <- c(y1_blk, arm_y[max(which(!kid))])
   }
-  trunk <- list(
-    x = x_blk,
-    y0 = ifelse(stem0, stem_y(y0_blk), pos[y0_blk]),
-    y1 = ifelse(stem1, stem_y(y1_blk), pos[y1_blk])
-  )
-  # Connector into each node's label (dtx:757-768). The corner is at the
-  # node's trunk column x_conn: on a left (y) axis the elbow is the
-  # horizontal rule from the PARENT's trunk (x_conn - pitch = the parent's
-  # column) across 1 em to x_conn + width, then the sep gap, then the label
-  # at x_conn + 1.2 em. On a bottom (x) axis the tree is rotated: trunks are
-  # horizontal and the leg is the vertical drop from the parent's trunk
-  # depth (x_conn - pitch) into the label corner (x_label) at the node's
-  # row. Roots hang off the free trunk at pitch/2. `vertical` is scalar, so
-  # the selection is vectorized over rows with rep().
-  # Trunk end of the leg: the parent's own trunk column (roots' parent is
-  # the free trunk at pitch/2).
-  par_col <- ifelse(is.na(cp), geom$pitch / 2,
-                    x_conn[ifelse(is.na(cp), 1L, cp)])
+  trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk)
+  # Connector arm into each node's label (dtx:757-768, gold): the horizontal
+  # rule runs from the node's OWN corner column (x_conn) across width (1 em)
+  # on the baseline row (arm_y); roots included. The first row overall (the
+  # first root) is unconnected in the gold — its arm is suppressed. On the
+  # rotated x-axis the same rule maps through px()/py() unchanged.
+  show <- seq_len(n) > 1L
   tick <- list(
-    x0 = par_col,
-    x1 = ifelse(rep(vertical, n),
-                ifelse(lvl == 0L, x_label, x_rule_end), x_label),
-    # y0 is the axis-agnostic "trunk depth" of the leg: for the rotated
-    # x-axis the leg spans x0 -> x1 in depth; for the y-axis the elbow is
-    # drawn at the node's own row (y0 == y1 == pos).
-    y0 = pos, y1 = pos
+    x0 = x_conn,
+    x1 = x_rule_end,
+    y0 = arm_y, y1 = arm_y,
+    show = show
   )
   list(
     x = pos, y = pos, x_label = x_label, x_conn = x_conn, x_trunk = x_conn,
     trunk = trunk, tick = tick,
-    stem = stem, first_child = first_child,
+    arm = arm_y, first_child = first_child,
     depth = depth,                                   # rank spread (inches)
     band = band,                                     # deepest label extent
     geom = geom

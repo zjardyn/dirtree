@@ -12,9 +12,10 @@ grat <- function(cond, msg) {
 d <- dirtree_data(subset(tax_lineages, marker == "16S"))
 
 ## ---------------------------------------------------------------- gold pixels
-# Constants (plan Decision Log, dtx + gold generator): rank pitch DT@all =
-# 1.4 em, trunk column of level L at L*1.4em + 0.2em, roots at pitch/2 =
-# 0.7 em. Gold measured em = 54.3 px (76 px pitch), row pitch 68 px.
+# Constants (plan Decision Log, dtx + gold generator + pixel dumps): rank
+# pitch DT@all = 1.4 em, corner column of level L at L*1.4em + 0.2em for
+# EVERY row including roots (0.2 em). Gold measured em = 54.3 px (76 px
+# pitch), row pitch 68 px.
 gold <- "examples/golden_standard.png"
 grat(file.exists(gold), paste("gold image present:", gold))
 m <- png::readPNG(gold)
@@ -38,7 +39,7 @@ probe <- function(x0) {
 }
 root_col <- which(vapply(seq_len(min(200L, nx)), runs_in_col, 0L) > 1000L)
 grat(length(root_col) >= 1L,
-     sprintf("root trunk: long vertical run at x=%s (0.7 em column)",
+     sprintf("root trunk: long vertical run at x=%s (0.2 em corner column)",
              paste(range(root_col), collapse = "-")))
 # Rank columns L = 1..max(level): ink runs at pitch spacing from the root
 # column (pitch signature; 1-npc drift makes per-row predicates
@@ -81,22 +82,40 @@ grat(!is.null(tree), "dirtreeGrob found in the composed axis")
 segs <- Filter(function(x) inherits(x, "segments") || inherits(x, "polyline"),
                tree$children)
 n_seg <- sum(vapply(segs, function(s) length(s$x0), 0L))
-lay <- dirtree:::dirtree_layout(d, (seq_len(nrow(d)) - 0.5) / nrow(d))
+lay <- dirtree:::dirtree_layout(d, (seq_len(nrow(d)) - 0.5) / nrow(d),
+                                vertical = FALSE)
 n_trunk <- length(lay$trunk$x)
-n_tick <- nrow(d)
+n_tick <- sum(lay$tick$show)                         # first row unconnected
 expect_seg <- n_trunk + n_tick
 grat(n_seg == expect_seg,
      sprintf("connector segments: rendered %d == expected %d (trunks %d + rules %d)",
              n_seg, expect_seg, n_trunk, n_tick))
 # Root trunk exists in the rendered grob. x-axis orientation (vertical =
-# FALSE): trunks are HORIZONTAL at depth_y(pitch/2) = "1npc - <pitch/2>
-# inches" (grid unit arithmetic: compare the rendered unit strings).
-pitch2 <- as.numeric(lay$geom$pitch / 2)
-ty <- format(grid::unit(1, "npc") - grid::unit(pitch2, "inches"))
+# FALSE): trunks are HORIZONTAL at depth_y(x_conn_roots) (gold orientation:
+# the root trunk is the OUTERMOST rule, max depth, shifted outward with the
+# rendered label metrics exactly as the grob does). Compare rendered unit
+# strings against the layout rebuilt with the grob's own label lengths.
+fs <- 12
+for (s in segs) {}
+txt0 <- NULL
+walk3 <- function(g) {
+  if (inherits(g, "textGrid") || inherits(g, "text")) txt0 <<- c(txt0, as.character(g$label))
+  if (!is.null(g$children)) lapply(g$children, walk3)
+  if (!is.null(g$grobs)) lapply(g$grobs, walk3)
+}
+walk3(tree)
+if (!is.null(tree$children)) for (ch in tree$children) {
+  if (!is.null(ch$gp$fontsize)) fs <- ch$gp$fontsize
+}
+tl_m5 <- nchar(txt0) * 0.6 * fs / 72.27
+lay <- dirtree:::dirtree_layout(d, (seq_len(nrow(d)) - 0.5) / nrow(d),
+                                text_len = tl_m5, vertical = FALSE)
+dep <- max(lay$x_conn)
+ty <- format(grid::unit(1, "npc") - grid::unit(dep, "inches"))
 root_trunk_drawn <- any(vapply(segs, function(s)
   any(format(s$y0) == ty & format(s$y1) == ty &
         as.numeric(s$x0) != as.numeric(s$x1)), FALSE))
-grat(root_trunk_drawn, "root trunk segment at pitch/2 in the rendered grob")
+grat(root_trunk_drawn, "root trunk segment on the roots' corner column in the rendered grob")
 
 ## ------------------------------------------------------- rendered labels (B7 3)
 txt <- character()

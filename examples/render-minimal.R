@@ -24,7 +24,7 @@ p <- ggplot(d, aes(x = node_key, y = n)) +
   scale_x_discrete(limits = d$node_key, breaks = d$node_key) +
   guides(x = guide_dirtree(nodes = d)) +
   theme_minimal() + theme(axis.text.x = element_blank())
-ggsave("examples/minimal_16S.png", p, width = 11, height = 12, dpi = 150)
+ggsave("examples/minimal_16S.png", p, width = 11, height = 12, dpi = 300)
 
 # y-axis (left) orientation, root at top (reversed ladder)
 p2 <- ggplot(d, aes(y = node_key, x = n)) +
@@ -33,7 +33,7 @@ p2 <- ggplot(d, aes(y = node_key, x = n)) +
                    breaks = rev(d$node_key)) +
   guides(y = guide_dirtree(nodes = d)) +
   theme_minimal() + theme(axis.text.y = element_blank())
-ggsave("examples/minimal_16S_y.png", p2, width = 12, height = 11, dpi = 150)
+ggsave("examples/minimal_16S_y.png", p2, width = 12, height = 11, dpi = 300)
 
 # Full dataset (16S + 18S with species tier): the gold's density
 d2 <- dirtree_data(tax_lineages)
@@ -46,5 +46,5 @@ p3 <- ggplot(d2, aes(y = node_key, x = n)) +
   theme(axis.text.y = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.minor = element_blank())
-ggsave("examples/full_lineages_y.png", p3, width = 12, height = 13, dpi = 150)
+ggsave("examples/full_lineages_y.png", p3, width = 12, height = 13, dpi = 300)
 cat("wrote examples/minimal_16S.png, minimal_16S_y.png, full_lineages_y.png\n")
