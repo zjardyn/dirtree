@@ -12,3 +12,4 @@ testthat-problems.rds
 _problems/
 dirtree_*.tar.gz
 dirtree.Rcheck/
+scratch/
