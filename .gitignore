@@ -1,0 +1,6 @@
+.workflow/
+.plans/
+.Rhistory
+*.Rproj
+Rplots.pdf
+template/
