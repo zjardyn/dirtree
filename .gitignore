@@ -8,3 +8,5 @@ template/
 .dev/*.log
 .R/
 .dev/*-out.txt
+testthat-problems.rds
+_problems/

@@ -4,6 +4,9 @@
 set -e
 ROOT=$(cd "$(dirname "$0")" && cd .. && cd .. && pwd -P)
 cd "$ROOT"
+# Refuse to run with a dirty R/: run() restores R/ from HEAD, which would
+# silently revert uncommitted work (this destroyed a fix in d86cfba).
+git diff --quiet R/ || { echo "R/ is dirty — commit before mutating"; exit 1; }
 run() { # $1 = label
   out=$(Rscript -e 'r <- as.data.frame(devtools::test(reporter="silent", stop_on_failure=FALSE)); cat(sprintf("%dF %dE %dP", sum(r$failed), sum(r$error), sum(r$passed)))' 2>&1 | tail -1)
   echo "$1 -> $out"

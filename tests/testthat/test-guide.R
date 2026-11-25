@@ -85,7 +85,12 @@ test_that("constructor rejects unsupported guide_axis args by name", {
     )
   }
   # explicit NULL is a supply (B6): the documented case must abort too
-  expect_error(guide_dirtree(nodes = d, angle = NULL), "angle", fixed = TRUE)
+  for (arg in c("angle", "n.dodge", "minor.ticks", "cap")) {
+    expect_error(
+      do.call(guide_dirtree, c(list(nodes = d), setNames(list(NULL), arg))),
+      arg, fixed = TRUE
+    )
+  }
 })
 
 test_that("missing nodes aborts with guidance; shape aborts name the contract", {
@@ -100,6 +105,14 @@ test_that("top/right positions abort instead of drawing into the panel (R1)", {
   d <- dirtree_data(toy_lineages())
   p <- plot_nodes(d, guide = guide_dirtree(nodes = d, position = "top"))
   expect_error(ggplot2::ggplotGrob(p), "top", fixed = TRUE)
+  # right axis of a y plot: parallel placement, so the build-time guard is
+  # what must reject it (perpendicular positions only get a ggplot warning)
+  py <- ggplot2::ggplot(d, ggplot2::aes(y = node_key, x = n)) +
+    ggplot2::geom_col() +
+    ggplot2::scale_y_discrete(limits = as.character(d$node_key),
+                              breaks = as.character(d$node_key)) +
+    ggplot2::guides(y = guide_dirtree(nodes = d, position = "right"))
+  expect_error(ggplot2::ggplotGrob(py), "right", fixed = TRUE)
 })
 
 test_that("y-axis placement works (vertical tree)", {

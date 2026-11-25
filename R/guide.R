@@ -48,7 +48,7 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
   }
   if (is.null(nodes)) {
     .dt_abort(c(
-      "{.fn guide_dirtree} needs {.arg nodes}.",
+      "{.fn guide_dirtree} must be given {.arg nodes}.",
       i = "Build a node table with {.fn dirtree_data}."
     ))
   }
