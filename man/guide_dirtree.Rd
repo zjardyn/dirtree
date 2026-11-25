@@ -2,71 +2,48 @@
 % Please edit documentation in R/guide.R
 \name{guide_dirtree}
 \alias{guide_dirtree}
-\title{Directory-style taxonomy tree axis guide}
+\title{Directory-style taxonomy tree as an axis guide}
 \usage{
 guide_dirtree(
   title = ggplot2::waiver(),
   theme = NULL,
-  levels = NULL,
-  n = NULL,
+  nodes = NULL,
   prefixes = c("p_", "c_", "o_", "f_", "g_", "s_"),
+  angle = NULL,
+  n.dodge = NULL,
+  minor.ticks = NULL,
+  cap = NULL,
   order = 0,
   position = ggplot2::waiver()
 )
 }
 \arguments{
-\item{title}{A character string or expression indicating a title of guide.
-If \code{NULL}, the title is not shown. By default
-(\code{\link[ggplot2:waiver]{waiver()}}), the name of the scale object or the name
-specified in \code{\link[ggplot2:labs]{labs()}} is used for the title.}
+\item{title, theme, order, position}{Inherited from
+\code{\link[ggplot2:guide_axis]{ggplot2::guide_axis()}}; \code{position} must be a horizontal or vertical
+axis (\code{"top"}/\code{"right"} secondary axes are not supported in v1).}
 
-\item{theme}{A \code{\link[ggplot2:theme]{theme}} object to style the guide individually or
-differently from the plot's theme settings. The \code{theme} argument in the
-guide partially overrides, and is combined with, the plot's theme.}
+\item{nodes}{A node table from \code{\link[=dirtree_data]{dirtree_data()}}.}
 
-\item{levels}{Integer vector, same length as the scale's breaks: the 0-based
-rank depth of each break. Usually taken from \code{\link[=dirtree_data]{dirtree_data()}}'s \code{level}.}
+\item{prefixes}{Rank prefixes by level; defaults
+\code{c("p_","c_","o_","f_","g_","s_")}. Display only.}
 
-\item{n}{Integer vector, same length as the breaks: leaf counts per node;
-nodes with \code{n > 1} print \verb{ × N} after the label. Default: all ones.}
-
-\item{prefixes}{Character vector of rank prefixes, one per depth;
-\code{prefixes[level + 1]} is glued in front of each label. The default
-\code{c("p_", "c_", "o_", "f_", "g_", "s_")} matches phylum-through-species.}
-
-\item{order}{A positive \code{integer} of length 1 that specifies the order of
-this guide among multiple guides. This controls in which order guides are
-merged if there are multiple guides for the same position. If 0 (default),
-the order is determined by a secret algorithm.}
-
-\item{position}{Where this guide should be drawn: one of top, bottom,
-left, or right.}
+\item{angle, n.dodge, minor.ticks, cap}{Unsupported by the tree guide;
+supplying them (including \code{NULL}) errors.}
 }
 \description{
-\code{guide_dirtree()} replaces an axis's flat text labels with an elbow tree of
-the hierarchy behind them, in the style of the LaTeX \code{dirtree} package:
-each break prints one node, indented by rank depth, joined to its parent by
-a vertical trunk and a horizontal tick (\verb{|_}). Identical paths collapse
-into one node with a \verb{× N} multiplier.
-}
-\details{
-The breaks must arrive in depth-first tree order (parents before children,
-siblings contiguous) — the order \code{\link[=dirtree_data]{dirtree_data()}} returns. Wire it up with
-\verb{scale_*_discrete(breaks = ..., labels = ..., guide = "dirtree")} via
-\code{\link[=guide_dirtree]{guide_dirtree()}}, i.e. pass the guide to \code{guides()} or the scale's
-\code{guide} argument.
-
-\code{angle}, \code{n.dodge}, \code{check.overlap} and \code{minor.ticks} from
-\code{\link[ggplot2:guide_axis]{ggplot2::guide_axis()}} are not supported: a tree label already occupies
-the whole label band, so dodging and rotation are meaningless.
+\code{guide_dirtree()} replaces the plain text labels of a discrete position
+scale with a directory-style tree (rank columns, \verb{|_} connectors,
+\code{p_}/\code{c_}/\code{o_}/\code{f_}/\code{g_} prefixes, \verb{ × N} collapse counts on terminal
+nodes). Build the node table with \code{\link[=dirtree_data]{dirtree_data()}}, plot on its
+\code{node_key} column, and pass the same table here.
 }
 \examples{
-library(ggplot2)
 d <- dirtree_data(subset(tax_lineages, marker == "16S"))
-ggplot(d, aes(x = label, y = n)) +
-  geom_col() +
-  scale_x_discrete(limits = d$label, breaks = d$label) +
-  guides(x = guide_dirtree(levels = d$level, n = d$n))
-
+ggplot(d, ggplot2::aes(x = node_key, y = n)) +
+  ggplot2::geom_col() +
+  ggplot2::scale_x_discrete(limits = d$node_key, breaks = d$node_key) +
+  guides(x = guide_dirtree(nodes = d)) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_blank())
 }
-\concept{axis guides}
+\concept{axes}

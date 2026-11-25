@@ -1,144 +1,156 @@
-#' Directory-style taxonomy tree axis guide
+# S7-era ggplot2 guide: GuideAxis subclass driven by a node table.
+#
+# Contract (plan §Design): breaks are the node rows, plotted on `node_key`;
+# the guide matches key labels to `nodes$node_key` by lookup (never
+# positionally), places row i at the break position `key[[params$aes]]` (npc),
+# and renders the tree via dirtree_grob(). Custom params ride in
+# super$params — ggplot2::new_guide() drops constructor args absent from it.
+
+#' Directory-style taxonomy tree as an axis guide
 #'
-#' @description
-#' `guide_dirtree()` replaces an axis's flat text labels with an elbow tree of
-#' the hierarchy behind them, in the style of the LaTeX `dirtree` package:
-#' each break prints one node, indented by rank depth, joined to its parent by
-#' a vertical trunk and a horizontal tick (`|_`). Identical paths collapse
-#' into one node with a `× N` multiplier.
+#' `guide_dirtree()` replaces the plain text labels of a discrete position
+#' scale with a directory-style tree (rank columns, `|_` connectors,
+#' `p_`/`c_`/`o_`/`f_`/`g_` prefixes, ` × N` collapse counts on terminal
+#' nodes). Build the node table with [dirtree_data()], plot on its
+#' `node_key` column, and pass the same table here.
 #'
+#' @param nodes A node table from [dirtree_data()].
+#' @param prefixes Rank prefixes by level; defaults
+#'   `c("p_","c_","o_","f_","g_","s_")`. Display only.
+#' @param title,theme,order,position Inherited from
+#'   [ggplot2::guide_axis()]; `position` must be a horizontal or vertical
+#'   axis (`"top"`/`"right"` secondary axes are not supported in v1).
+#' @param angle,n.dodge,minor.ticks,cap Unsupported by the tree guide;
+#'   supplying them (including `NULL`) errors.
 #' @inheritParams ggplot2::guide_axis
-#' @param levels Integer vector, same length as the scale's breaks: the 0-based
-#'   rank depth of each break. Usually taken from [dirtree_data()]'s `level`.
-#' @param n Integer vector, same length as the breaks: leaf counts per node;
-#'   nodes with `n > 1` print ` × N` after the label. Default: all ones.
-#' @param prefixes Character vector of rank prefixes, one per depth;
-#'   `prefixes[level + 1]` is glued in front of each label. The default
-#'   `c("p_", "c_", "o_", "f_", "g_", "s_")` matches phylum-through-species.
-#'
-#' @details
-#' The breaks must arrive in depth-first tree order (parents before children,
-#' siblings contiguous) — the order [dirtree_data()] returns. Wire it up with
-#' `scale_*_discrete(breaks = ..., labels = ..., guide = "dirtree")` via
-#' [guide_dirtree()], i.e. pass the guide to `guides()` or the scale's
-#' `guide` argument.
-#'
-#' `angle`, `n.dodge`, `check.overlap` and `minor.ticks` from
-#' [ggplot2::guide_axis()] are not supported: a tree label already occupies
-#' the whole label band, so dodging and rotation are meaningless.
-#'
+#' @family axes
 #' @examples
-#' library(ggplot2)
 #' d <- dirtree_data(subset(tax_lineages, marker == "16S"))
-#' ggplot(d, aes(x = label, y = n)) +
-#'   geom_col() +
-#'   scale_x_discrete(limits = d$label, breaks = d$label) +
-#'   guides(x = guide_dirtree(levels = d$level, n = d$n))
-#'
-#' @family axis guides
+#' ggplot(d, ggplot2::aes(x = node_key, y = n)) +
+#'   ggplot2::geom_col() +
+#'   ggplot2::scale_x_discrete(limits = d$node_key, breaks = d$node_key) +
+#'   guides(x = guide_dirtree(nodes = d)) +
+#'   ggplot2::theme_minimal() +
+#'   ggplot2::theme(axis.text.x = ggplot2::element_blank())
 #' @export
 guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
-                          levels = NULL, n = NULL,
-                          prefixes = c("p_", "c_", "o_", "f_", "g_", "s_"),
-                          order = 0, position = ggplot2::waiver()) {
-  if (!is.null(levels) && !(rlang::is_integerish(levels) && all(levels >= 0))) {
-    rlang::abort("{.arg levels} must be a non-negative integer vector.")
+                          nodes = NULL, prefixes = c("p_", "c_", "o_", "f_", "g_", "s_"),
+                          angle = NULL, n.dodge = NULL, minor.ticks = NULL,
+                          cap = NULL, order = 0, position = ggplot2::waiver()) {
+  for (nm in c("angle", "n.dodge", "minor.ticks", "cap")) {
+    if (!is.null(get(nm))) {
+      .dt_abort(c(
+        paste0("{.fn guide_dirtree} does not support {.arg ", nm, "}."),
+        i = "The tree lays out its own ranks; see {.fn dirtree_geom}-backed args in {.fn dirtree_grob}."
+      ))
+    }
   }
-  if (!is.null(n) && !(rlang::is_integerish(n) && all(n >= 1))) {
-    rlang::abort("{.arg n} must be a positive integer vector.")
+  if (is.null(nodes)) {
+    .dt_abort(c(
+      "{.fn guide_dirtree} needs {.arg nodes}.",
+      i = "Build a node table with {.fn dirtree_data}."
+    ))
   }
-  if (!rlang::is_character(prefixes) || !length(prefixes)) {
-    rlang::abort("{.arg prefixes} must be a non-empty character vector.")
-  }
-  # Local subclass carrying the custom params, so ggplot2's new_guide() keeps
-  # them (it drops constructor args absent from super$params).
+  .check_dirtree_node_table(nodes)
   super <- ggplot2::ggproto(
     "GuideDirtree", ggplot2::GuideAxis,
     params = c(
       ggplot2::GuideAxis$params,
-      list(levels = NULL, n = NULL, prefixes = c("p_", "c_", "o_", "f_", "g_", "s_"))
+      list(nodes = NULL, prefixes = prefixes)
     ),
     build_labels = function(key, elements, params) {
       if (".type" %in% names(key)) {
         key <- vctrs::vec_slice(key, key$.type == "major")
       }
-      labels <- key$.label
-      n_breaks <- length(labels)
-      if (n_breaks < 1L) {
+      labels <- as.character(key$.label)
+      if (length(labels) < 1L) {
         return(list(grid::nullGrob()))
       }
-      levels <- params$levels
-      n <- params$n
-      if (is.null(levels)) {
-        rlang::abort(c(
-          "{.fn guide_dirtree} needs {.arg levels}.",
-          i = "One 0-based rank depth per break; see {.fn dirtree_data}."
+      nodes <- params$nodes
+      idx <- match(labels, as.character(nodes$node_key))
+      unmatched <- labels[is.na(idx)]
+      if (length(unmatched)) {
+        .dt_abort(c(
+          "{.fn guide_dirtree} found break{?s} missing from {.arg nodes}: {.val {unmatched}}.",
+          i = "Plot breaks on {.field node_key} and pass the full node table from {.fn dirtree_data}."
         ))
       }
-      .dirtree_check_lengths(levels, n, n_breaks)
-      nodes <- .dirtree_nodes_from_levels(levels)
-      nodes$n <- if (is.null(n)) rep(1L, n_breaks) else as.integer(n)
-      # × N prints on leaf nodes only (gold standard: multiplier beside genera).
-      leaf <- !(nodes$parent %in% seq_len(nrow(nodes)))
-      text <- .dirtree_prefixed(labels, nodes$level, params$prefixes, nodes$n, leaf)
-      list(dirtree_grob(nodes, text, gp = grid::gpar(
+      nd <- nodes[idx, , drop = FALSE]
+      newpar <- match(nodes$parent[idx], idx)
+      orphan <- which(is.na(newpar) & nd$level > 0L)
+      if (length(orphan)) {
+        .dt_abort(c(
+          "{.fn guide_dirtree} breaks are not tree-closed: {.val {labels[orphan]}} has no parent row.",
+          i = "Include every ancestor rank in {.field breaks}."
+        ))
+      }
+      nd$parent <- as.integer(newpar)
+      leaf <- !(seq_len(nrow(nd)) %in% nd$parent[!is.na(nd$parent)])
+      text <- .dirtree_prefixed(labels, nd$level, params$prefixes, nd$n, leaf)
+      gp <- grid::gpar(
         col = elements$text$colour,
         fontsize = elements$text$size,
         fontface = elements$text$face,
         fontfamily = elements$text$family
-      ), vertical = isTRUE(params$vertical)))
+      )
+      list(dirtree_grob(
+        nd, text,
+        pos = key[[params$aes]],
+        gp = gp,
+        vertical = isTRUE(params$vertical)
+      ))
     }
   )
   ggplot2::new_guide(
     title = title, theme = theme,
-    levels = if (is.null(levels)) NULL else as.integer(levels),
-    n = if (is.null(n)) NULL else as.integer(n),
-    prefixes = prefixes,
+    nodes = nodes, prefixes = prefixes,
     available_aes = c("x", "y"),
     order = order, position = position,
     name = "dirtree", super = super
   )
 }
 
-.dirtree_check_lengths <- function(levels, n, n_breaks) {
-  if (length(levels) != n_breaks) {
-    rlang::abort(c(
-      "{.arg levels} has length {length(levels)}, not the {n_breaks} break{?s} of the scale.",
-      i = "Supply one level per break, in depth-first tree order."
+# Node table shape (plan validation rule 1).
+.check_dirtree_node_table <- function(nodes) {
+  need <- c("label", "level", "parent", "n", "node_key")
+  if (!is.data.frame(nodes) || !all(need %in% names(nodes))) {
+    .dt_abort(c(
+      "{.arg nodes} must be a node table with columns {.val {need}}.",
+      i = "Build one with {.fn dirtree_data}."
     ))
   }
-  if (!is.null(n) && length(n) != n_breaks) {
-    rlang::abort("{.arg n} has length {length(n)}, not the {n_breaks} break{?s} of the scale.")
+  if (!rlang::is_integerish(nodes$level) || any(nodes$level < 0)) {
+    .dt_abort("{.field level} must be 0-based integer rank depths.")
   }
-}
-
-# Minimal node table (label filled later) from a per-break level vector:
-# parent of a node = nearest preceding row with level - 1 (depth-first,
-# contiguous children).
-.dirtree_nodes_from_levels <- function(levels) {
-  levels <- as.integer(levels)
-  parent <- integer(length(levels))
-  for (i in seq_along(levels)) {
-    parent[i] <- if (levels[i] == 0L) {
-      NA_integer_
+  levels <- as.integer(nodes$level)
+  if (length(levels) && levels[1] != 0L) {
+    .dt_abort(c(
+      "{.arg nodes} is not depth-first: the first row has rank depth {levels[1]}, not 0.",
+      i = "Rows must visit every parent before its children (see {.fn dirtree_data})."
+    ))
+  }
+  bad <- vapply(seq_along(levels), function(i) {
+    if (levels[i] == 0L) {
+      !is.na(nodes$parent[i])
     } else {
-      cand <- which(seq_len(i - 1L) < i & levels[seq_len(i - 1L)] == levels[i] - 1L)
-      if (length(cand)) max(cand) else NA_integer_
+      p <- nodes$parent[i]
+      is.na(p) || p >= i || levels[p] != levels[i] - 1L
     }
-  }
-  if (anyNA(parent) && any(levels > 0L)) {
-    bad <- which(is.na(parent) & levels > 0L)[1]
-    rlang::abort(c(
-      "Break {bad} has rank depth {levels[bad]} with no parent at depth {levels[bad] - 1L} above it.",
-      i = "Breaks must be in depth-first tree order (see {.fn dirtree_data})."
+  }, logical(1))
+  if (any(bad)) {
+    .dt_abort(c(
+      "{.arg nodes} row(s) {which(bad)} violate the depth-first contract (parent must precede at rank depth level - 1).",
+      i = "Build the table with {.fn dirtree_data}."
     ))
   }
-  data.frame(label = NA_character_, level = levels, parent = parent,
-             n = 1L, stringsAsFactors = FALSE)
+  if (anyDuplicated(nodes$node_key)) {
+    .dt_abort("{.field node_key} must be unique.")
+  }
+  invisible(TRUE)
 }
 
-# Strip a rank prefix from a display label (breaks are plotted on the prefixed
-# node_key; the guide re-prefixes by node level), then add " × N" on leaves.
+# Strip a rank prefix from a break label (breaks are plotted on the prefixed
+# node_key), re-prefix by node level, add " × N" on terminal nodes.
 .dirtree_prefixed <- function(labels, levels, prefixes, n, leaf) {
   bare <- sub("^[pcofgs]_", "", labels)
   bare <- sub("^#[0-9]+_", "", bare)
@@ -146,4 +158,27 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
                 paste0("#", levels, "_"))
   mult <- ifelse(leaf & n > 1L, paste0(" \u00d7 ", n), "")
   paste0(pre, bare, mult)
+}
+
+# Validate a bare depth-first level vector and derive parents (used by
+# dirtree_data() and tests; plan validation rule 2 - the abort requires a
+# NON-EMPTY bad index: valid trees like c(0,1,2,3,4,0,1,2,3,4) must pass).
+.dirtree_nodes_from_levels <- function(levels) {
+  levels <- as.integer(levels)
+  parent <- vapply(seq_along(levels), function(i) {
+    if (levels[i] == 0L) {
+      NA_integer_
+    } else {
+      cand <- which(levels[seq_len(i - 1L)] == levels[i] - 1L)
+      if (length(cand) == 0L) NA_integer_ else max(cand)
+    }
+  }, integer(1))
+  bad <- which(is.na(parent) & levels > 0L)
+  if (length(bad) > 0L) {
+    .dt_abort(c(
+      "Break {bad[1]} has rank depth {levels[bad[1]]} with no parent at depth {levels[bad[1]] - 1L} above it.",
+      i = "Breaks must be in depth-first tree order (see {.fn dirtree_data})."
+    ))
+  }
+  vctrs::data_frame(label = NA_character_, level = levels, parent = parent)
 }

@@ -1,0 +1,38 @@
+:=                      Create and name an object in one step
+S4_register             Register an S7, S3, or union class with S4
+S7_class                Retrieve the class specification of an object
+S7_class_desc           Format a class specification as a string
+S7_classes              Find S7 classes and generics in an environment
+S7_data                 Get/set underlying "base" data
+S7_generic_call         Access the generic call and user frame from
+                        within a method
+S7_inherits             Does this object inherit from a class?
+S7_methods              List S7 methods
+S7_on_load              Package hooks for S7 methods
+base_classes            S7 wrappers for base types
+base_s3_classes         S7 wrappers for key S3 classes
+class_any               Dispatch on any class
+class_environment       Use an environment as the base type of an S7
+                        class
+class_missing           Dispatch on a missing argument
+convert                 Convert an object from one type to another
+convert_lazy            Non-strict conversion
+deprecated_class        Deprecate a class
+deprecated_generic      Deprecate a generic
+deprecated_property     Deprecate a property
+method                  Find a method for an S7 generic
+method<-                Register an S7 method for a generic
+method_explain          Explain method dispatch
+native-api              Native API
+new_S3_class            Declare an S3 class
+new_class               Define a new S7 class
+new_external_class      Classes in other packages
+new_external_generic    Generics in other packages
+new_generic             Define a new generic
+new_property            Define a new property
+new_union               Define a class union
+prop                    Get/set a property
+prop_names              Property introspection
+props                   Get/set multiple properties
+super                   Force method dispatch to use a superclass
+validate                Validate an S7 object

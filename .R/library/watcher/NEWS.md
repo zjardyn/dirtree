@@ -1,0 +1,44 @@
+# watcher 0.2.2
+
+* Paths reported by a single callback are now always unique, with duplicate filesystem events for the same path consolidated (#55, thanks @tomjemmett).
+
+# watcher 0.2.1
+
+* Fixes installation failing on systems with a partial or broken system 'libfswatch', now falling back to the bundled build (#48).
+* Updates bundled 'libfswatch' source to 1.22.0 release. On Linux, this fixes 'Renamed' events reporting only the watched directory path when a file is moved in from an unwatched location.
+
+# watcher 0.2.0
+
+* Building the bundled 'libfswatch' from source no longer requires 'cmake', now directly using the R C/C++ toolchain.
+  A system 'libfswatch' is still used when available.
+
+# watcher 0.1.6
+
+* Updates bundled 'libfswatch' source to 1.20.1 release.
+
+# watcher 0.1.5
+
+* Fixed issue on Windows where watching with a `latency` < 1 caused high CPU usage (#32, thanks @RichardHooijmaijers).
+
+# watcher 0.1.4
+
+* Watcher can now use a system 'libfswatch' installed in a non-standard location (#28).
+
+# watcher 0.1.3
+
+* `watcher()` now accepts a vector for the `path` argument to monitor multiple files or directories (#16).
+
+* Fixes Windows bi-arch source builds for R <= 4.1 using rtools40 and earlier (#19).
+
+# watcher 0.1.2
+
+* Adds `$get_path()` and `$is_running()` methods to the `Watcher` R6 class.
+  + Use these rather than the fields `path` and `running`, as they have been made private.
+
+# watcher 0.1.1
+
+* Updates bundled 'libfswatch' source package to 1.19.0-dev.
+
+# watcher 0.1.0
+
+* Initial CRAN release.

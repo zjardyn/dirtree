@@ -37,11 +37,11 @@ dirtree_data <- function(x, ranks = NULL) {
     )
   }
   if (!rlang::is_character(ranks) || !length(ranks)) {
-    rlang::abort("{.arg ranks} must be a non-empty character vector.", call = call)
+    .dt_abort("{.arg ranks} must be a non-empty character vector.", call = call)
   }
   missing <- setdiff(ranks, names(x))
   if (length(missing)) {
-    rlang::abort(
+    .dt_abort(
       c(
         "Column{?s} {.val {missing}} not found in {.arg x}.",
         i = "Rank columns are given coarsest to finest."
@@ -51,7 +51,7 @@ dirtree_data <- function(x, ranks = NULL) {
   }
   bad <- ranks[!vapply(x[ranks], is.character, logical(1))]
   if (length(bad)) {
-    rlang::abort(
+    .dt_abort(
       "Rank column{?s} {.val {bad}} {?is/are} not character.",
       call = call
     )

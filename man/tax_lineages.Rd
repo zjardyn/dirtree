@@ -25,8 +25,8 @@ tax_lineages
 A minimal hierarchical dataset: 19 hand-curated amplicon sequence variants
 (ASVs) from the pelagic microplastics degradation project, one per distinct
 genus, with complete assignments from phylum to genus (SILVA-based
-taxonomy), chosen so the hierarchy branches cleanly (7 phyla, 6 classes,
-14 orders, 18 distinct families). Species is filled only for 18S rows where the
+taxonomy), chosen so the hierarchy branches cleanly (distinct labels:
+7 phyla, 11 classes, 17 orders, 19 families, 19 genera). Species is filled only for 18S rows where the
 source had a species-level call; \code{""} means unassigned.
 }
 \keyword{datasets}

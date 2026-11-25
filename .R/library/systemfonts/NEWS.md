@@ -1,0 +1,245 @@
+# systemfonts 1.3.4
+
+* Fix a UBSAN issue in variable font caching
+
+# systemfonts 1.3.3
+
+* `register_font()` and `register_variant()` gain a `variation` argument that
+  lets you attach variable font axis coordinates (a `font_variation()` object)
+  to a registered font, making it possible to register a variable font at
+  specific axis settings under a new name. When a registered font declares a
+  `wght` or `wdth` axis, requests for in-between weight/width values are
+  served by the registered font with the requested coordinate, rather than
+  bypassing the registry. `registry_fonts()` gains a `variations` column
+  reflecting the registered settings
+* On Linux, the `symbol` alias is now resolved by probing a preference list of
+  fonts with correct Unicode cmaps (DejaVu Sans, OpenSymbol, Symbola) before
+  falling back to fontconfig's `symbol` match. Fontconfig often resolves
+  `symbol` to URW's Standard Symbols PS, whose cmap maps e.g. U+00D7 (×) to a
+  dot operator, breaking plotmath output (r-lib/ragg#213)
+* `detect_emoji_embedding()` in the C API now returns a third state (2) for
+  text-presentation-default emoji codepoints (e.g. U+2199) that lack a
+  variation selector and are not covered by the primary font. Consumers can
+  shape these with normal font fallback and only use the emoji font as a last
+  resort, fixing text characters such as arrows being replaced by color emoji
+  (r-lib/ragg#217)
+* `scan_local_fonts()` now only considers files with a known font extension,
+  fixing slow package loading when the scan directories (`./fonts`, `~/fonts`)
+  contain many non-font files (r-lib/ragg#210)
+* The C API now provides the horizontal bearings of a glyph through the new
+  `glyph_metrics_with_bearing()` function (#154)
+* `glyph_bitmap()` now falls back to the nearest bitmap strike that actually
+  carries a glyph when the requested size yields an empty bitmap in a
+  non-scalable font (e.g. Apple Color Emoji glyphs added in later Unicode
+  versions, which lack artwork in the mid-size strikes), instead of returning
+  an empty bitmap
+* Added math alias to select a font suitable for equations (has math table
+  support).
+* Fixed `get_glyph_bitmap()` returning transposed rasters and writing out of
+  bounds for color (BGRA) glyphs.
+* Fixed a typo in the optical_sizing font variation renaming `optz`-> `opsz`
+* Extensive hardening of the C/C++ code: fixed a heap corruption when a font
+  lacks a PostScript name, a stack overflow in `string_widths_dev()` and
+  `string_metrics_dev()` with long family names, cache corruption after failed
+  font loads, resource leaks on macOS and in variable font handling, and
+  out-of-bounds reads on empty or malformed inputs. Variation axis settings
+  are now applied more reliably (hash collisions fixed, defaults restored,
+  invalid values rejected with an error)
+* Removed the unused and broken DirectWrite-based Windows font manager
+* `require_font()` now checks reachability of the actual font repositories
+  instead of probing 8.8.8.8, which is blocked on many corporate networks
+  (#156)
+* Fixed compilation against FreeType < 2.9 which lacks `FT_Done_MM_Var()`
+  (#149, #155)
+
+# systemfonts 1.3.2
+
+* Fixed a compilation error when compiling against very old versions of Freetype
+* Avoid compiler warnings when comparing doubles to enum
+* Work around broken PingFangUI.ttc on macOS (#147)
+* Guard against zero-length input (#151)
+
+# systemfonts 1.3.1
+
+* Fixed a sanitizer issue with converting variation axis names to tags
+* Avoid spurious build issues on old macOS systems
+* Avoid writing font files to the user directory during test
+
+# systemfonts 1.3.0
+
+* Fixed a bug in the URL generation for Google Font imports
+* Added support for Bunny Fonts imports (#132)
+* Begin deprecation of `bold` argument in favour of `weight` throughout package
+* Improve messaging in `require_font()`
+* Fonts are automatically added to the session when an import is created (#131)
+* Fixed a bug in converting font weights as reported by macOS into ISO-style
+  weight used by systemfonts and FreeType
+* `require_font()` now better handles lack of internet access
+* Added `plot_glyph_stats()` to provide visual explanation for various glyph
+  measures
+* `font_info()` now returns the PostScript name of the font in the `name` column
+* Added support for variable fonts throughout the package. Other packages will
+  need to be upgraded to take advantage of this. A new function
+  `font_variation()` can be used to define coords for the variation axes
+* Fixed a bug in webfont download on Windows where fontfiles would become
+  corrupted (#134)
+* Fixed an issue in textshaping where conflicting DLL names resulted in the R
+  process inability to render text if textshaping was loaded first
+  (textshaping#36)
+* Add a way to test if the freetype version matches between systemfonts and
+  another package match
+* Added a `name` column to the output of `glyph_info()` to report the name of
+  the glyph is provided by the font
+* Added a `charmaps` column to the output of `font_info()` to report the name of
+  the character maps provided by the font
+* Cached faces are now reference counted when they are handed off to another
+  package and it is the other packages' responsibility to decrement the
+  reference by calling `FT_Done_Face()` when finished with it.
+
+# systemfonts 1.2.3
+
+* Added `fonts_as_import()` to create stylesheet urls for embedding of fonts in
+  HTML and SVG
+* Added two C-level functions for getting glyph outline and bitmap information
+
+# systemfonts 1.2.2
+
+* Fix compilation on macOS when the obj-c++ compiler fails to pick up the right
+  obj-c++ version (#122)
+* `add_fonts()` now supports urls as well as file paths (#124)
+
+# systemfonts 1.2.1
+
+* Fix a memory issue when adding new fonts with `add_fonts()`
+* Default to not downloading woff2 files from Google Fonts since it is poorly
+  supported on many systems
+* Fixed a bug in `get_from_font_squirrel()` where the font wasn't placed in the
+  user specified location
+
+# systemfonts 1.2.0
+
+* Providing the font name as the family should now result in better matching
+* Improved the fallback options for Windows so that as many scripts are now
+  covered
+* Add infrastructure to add uninstalled font files to the search path used for
+  font matching
+* Add facilities to download and register fonts from web repositories such as
+  Google Fonts and Font Squirrel
+* Add `require_font()` that does it's best to ensure that a given font is
+  available after being called.
+* Added functions for extracting outline and raster representation of glyphs
+
+# systemfonts 1.1.0
+
+* `match_fonts()` have been added as a vectorized and generalized version of
+  `match_font()`. In the process `match_font()` has been deprecated in favour of
+  `match_fonts()`
+* Two internal functions for converting weight and width names to integers have
+  been exported
+* Fix a segfault on macOS when the system encounters a corrupted font collection
+  (#113)
+
+# systemfonts 1.0.6
+
+* Fix a bug in `shape_string()` using `vjust = 1` (#85)
+
+# systemfonts 1.0.4
+
+* Use Courier New as default mono font on macOS instead of Courier to avoid
+  issues between FreeType and Courier (#105)
+
+# systemfonts 1.0.4
+
+* Provide a fallback solution to the setup of the CRAN windows builder so that
+  fonts can be discovered (#87)
+
+# systemfonts 1.0.3
+
+* Avoid warning when including the systemfonts header (#77)
+* Fix size selection of non-scalable fonts when the requested size is bigger
+  than the available
+* Fix compilation bug when systemfont is used in C packages (#76)
+
+# systemfonts 1.0.2
+
+* Ensure compitability with freetype <= 2.4.11 (#70, @jan-glx)
+* Prepare for UCRT compilation
+
+# systemfonts 1.0.1
+
+* Fix a bug in font matching on Windows when matching monospace fonts
+* Fix a bug in `reset_font_cache()` on mac that would cause a system crash if
+  the cache was not filled in advance (#67)
+
+# systemfonts 1.0.0
+
+* Tweak size determination for non-scalable fonts
+* Fix bug when switching between scalable and non-scalable fonts in the cache
+* Add utility for querying font fallbacks at both the R and C level
+* Add C-level API for finding emoji embeddings in strings
+* Add utility for getting weight of font from C code
+* Add utility for getting family name of font from C code
+* Add font weight and width to the output of `font_info()`
+
+# systemfonts 0.3.2
+
+* Fix compiled code for old R versions
+* Changes to comply with next cpp11 version
+
+# systemfonts 0.3.1
+
+* Fixed warnings on CRAN LTO machine
+
+# systemfonts 0.3.0
+
+* Added `get_cached_face()` so that other packages might retrieve FT_Face
+  objects from the cache.
+* Adapted cpp11
+* Add infrastructure for setting OpenType font features on a registered font with
+  either `register_font()` or the new `register_variant()`, along with the
+  `font_feature()` function.
+
+# systemfonts 0.2.3
+
+* Replace the buggy Freetype cache subsystem with own implementation
+* Fix indexing bug in `glyph_metrics()`
+
+# systemfonts 0.2.2
+
+* Fix remaining valgrind issues by fixing the included font-manager code
+* Rewrite the text shaping algorithm to make it more future proof
+* Work around a nasty freetype bug in their cache subsystem
+
+# systemfonts 0.2.1
+
+* Various fixes to the correctness of compiled code
+
+# systemfonts 0.2.0
+
+* Add `string_widths_dev()` and `string_metrics_dev()` to request the current
+  graphic device for string widths and metrics.
+* Add system for registering non-system fonts for look-up.
+* systemfonts will now detect user-installed fonts on Windows
+  (possible after the 1806 update)
+* Font lookup is now cached for faster performance. The caching will get flushed
+  when new fonts are added to the registry, or manually with `reset_font_cache()`
+* Systemfonts now provide querying of font information with `font_info()` and
+  `glyph_info()`
+* Basic string shaping is now provided with `shape_string()`
+* Line width calculation is now available with `string_width()` (ignores
+  presence of newlines, use `shape_string()` for more complicated strings)
+* Added `str_split_emoji()` for splitting of strings into substrings of emoji
+  and non-emoji glyphs
+* Provide a header file for easy use from within C in other packages
+* Fix memory management issues on Mac
+* Fix handling of erroneous font files on windows
+
+# systemfonts 0.1.1
+
+* Fix compilation on systems with a very old fontconfig version (Solaris)
+
+# systemfonts 0.1.0
+
+* First version with `match_font()` and `system_fonts()` capabilities. More to
+  come.
+* Added a `NEWS.md` file to track changes to the package.

@@ -11,7 +11,7 @@ test_that("display labels carry rank prefixes; × N prints on leaves only", {
   d2 <- dirtree_data(tl)
   lab2 <- dirtree:::dirtree_labels(d2)
   g1 <- which(d2$label == "G1" & d2$level == 4L)
-  expect_identical(glengths(lab2[g1]), 1L)
+  expect_identical(length(lab2[g1]), 1L)
   expect_true(grepl("g_G1 \u00d7 2$", lab2[g1]))
 })
 

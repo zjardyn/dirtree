@@ -1,14 +1,14 @@
 test_that("dirtree_data emits every node, depth-first, with subtree counts", {
   d <- dirtree_data(toy_lineages())
-  # 3 phyla + 3 classes + 3 orders + 3 families + 3 genera = 15 unique paths
-  expect_identical(nrow(d), 15L)
+  # 2 phyla + 2 classes + 2 orders + 2 families + 3 genera = 11 unique paths
+  expect_identical(nrow(d), 11L)
   expect_identical(d$level[1], 0L)
   expect_setequal(names(d), c("label", "level", "parent", "n", "node_key"))
   # parents precede children; only roots are NA-parented
   expect_identical(which(is.na(d$parent)), which(d$level == 0L))
   expect_true(all(d$parent[!is.na(d$parent)] < seq_len(nrow(d))[!is.na(d$parent)]))
   # depth-first: children of a node are contiguous
-  kids <- lapply(split(seq_len(nrow(d)), d$parent))
+  kids <- split(seq_len(nrow(d)), d$parent)
   expect_true(all(vapply(kids, function(k) identical(k, seq.int(min(k), max(k))), TRUE)))
   # subtree leaf counts: family F1 has 2 genera; root P1 has 2 leaves; P2 has 1
   expect_identical(d$n[d$label == "F1" & d$level == 3L], 2L)
@@ -44,7 +44,8 @@ test_that("shipped 16S subset yields 40 nodes spanning ranks 0..4", {
   d <- dirtree_data(subset(tax_lineages, marker == "16S"))
   expect_identical(nrow(d), 40L)
   expect_identical(range(d$level), c(0L, 4L))
-  expect_identical(d$n[d$label == "Pseudomonadota"], 6L)
+  n_pseudo <- sum(subset(tax_lineages, marker == "16S")$Phylum == "Pseudomonadota")
+  expect_identical(d$n[d$label == "Pseudomonadota"], as.integer(n_pseudo))
 })
 
 test_that("shipped 18S subset collapses at the shared Fungi order node", {
