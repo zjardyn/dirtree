@@ -9,11 +9,11 @@
 Draws ranked hierarchies, such as microbial taxonomy from phylum to genus, as directory-style elbow trees that replace flat axis labels in 'ggplot2'. A lineage table with one row per leaf and one column per rank is collapsed to unique tree paths; each axis break becomes a node indented by rank depth, joined to its parent by the elbow connectors of the 'LaTeX' 'dirtree' package, with identical lineages collapsed to a '× N' multiplier.
 }
 \author{
-\strong{Maintainer}: Hood Z. J. \email{zjardynhood@example.invalid}
+\strong{Maintainer}: Z. J. Hood \email{zjardynhood@example.invalid}
 
 Authors:
 \itemize{
-  \item Hood Z. J. \email{zjardynhood@example.invalid}
+  \item Z. J. Hood \email{zjardynhood@example.invalid}
 }
 
 }

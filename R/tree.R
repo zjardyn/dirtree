@@ -25,6 +25,11 @@
 # indentation in inches (column 0 is the axis line; the band's top for the
 # x-axis is column 0).
 
+#' Geometry constants transcribed from LaTeX dirtree v0.32 (`\DTsetlength`):
+#' offset/width/sep in em, rank pitch `DT@all = 1.4 em`, rule width, row
+#' baselineskip. Defaults are the gold generator's values.
+#' @keywords internal
+#' @noRd
 dirtree_geom <- function(offset_em = 0.2, width_em = 1, sep_em = 0.2,
                          rule_pt = 0.4, dot_pt = 1.6, row_bl = 1,
                          em_in = 12 / 72.27) {
@@ -40,11 +45,16 @@ dirtree_geom <- function(offset_em = 0.2, width_em = 1, sep_em = 0.2,
   )
 }
 
-# nodes: node table (label, level, parent, n) in tree order with parents
-# preceding; pos: length-nrow row-slot positions (npc, 0..1, caller's
-# direction); widths: ignored (rank columns are the fixed LaTeX pitch);
-# text_len: rendered label length per node (inches, for the band extent of
-# rotated x-axis labels).
+#' Tree geometry: node table + break positions -> drawing coordinates.
+#'
+#' nodes: node table (label, level, parent, n) in tree order with parents
+#' preceding; pos: length-nrow row-slot positions (npc, 0..1, caller's
+#' direction); widths: ignored (rank columns are the fixed LaTeX pitch);
+#' text_len: rendered label length per node (inches, for the band extent of
+#' rotated x-axis labels). Pure data: no grid, no ggplot2.
+#' @keywords internal
+#' @noRd
+#' @importFrom stats median
 dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
                           geom = dirtree_geom()) {
   n <- nrow(nodes)
@@ -83,6 +93,13 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   cp <- as.integer(nodes$parent)
   p1 <- cp - 1L                                      # row before a block start
 
+  # dtx:736 stem: the vertical rule reaches 0.5 baselineskip PAST the last
+  # row it serves. Rows sit at break npc positions, so the baselineskip in
+  # npc is the row pitch; the along-axis travel direction is the row order.
+  dirn <- if (n > 1L && pos[n] != pos[1]) sign(pos[n] - pos[1]) else 1
+  pitch_npc <- if (n > 1L) median(abs(diff(sort(pos)))) else 0
+  stem_y <- function(row_i) pos[row_i] + dirn * 0.5 * pitch_npc
+
   kid <- !is.na(cp)
   # Block membership: a child is the FIRST child of its parent if the
   # preceding row is not its sibling (parent heads the block, dtx:744).
@@ -91,27 +108,37 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   last_child <- kid & !duplicated(cp, fromLast = TRUE)
 
   # Trunk blocks: runs of consecutive rows sharing a connector-parent.
-  blocks <- .rle_rows(cp[kid], cp_row = which(kid))
+  # NA-parent (root) rows are grouped too, so the root-trunk branch below
+  # is the one that implements the forest rule (a rootless block is dead code).
+  blocks <- .rle_rows(cp, cp_row = seq_len(n))
   cp2 <- blocks$cp
-  farthest <- ifelse(abs(blocks$end - cp2) >= abs(blocks$start - cp2),
-                     blocks$end, blocks$start)
+  nonroot <- !is.na(cp2)
+  farthest <- ifelse(
+    nonroot & abs(blocks$end - cp2) >= abs(blocks$start - cp2),
+    blocks$end, blocks$start
+  )
   x_blk <- x_conn[blocks$cp]
   y0_blk <- blocks$cp
   y1_blk <- farthest
+  stem0 <- rep(FALSE, length(cp2))                   # extend past the y0 end
+  stem1 <- rep(TRUE, length(cp2))                    # extend past the far end
   # Roots: the roots form one (contiguous, in tree order) NA-parent block;
   # they share the free trunk at x = pitch/2, spanning first root's row to
-  # the last root's row, tee at every root except the last.
+  # the last root's row + 0.5-row stem (the last root is a child of the
+  # free trunk, dtx:736), tee at every root.
   root_blk <- which(blocks$root)
   if (length(root_blk)) {
     keep <- !blocks$root
     x_blk <- c(x_blk[keep], geom$pitch / 2)
     y0_blk <- c(y0_blk[keep], max(blocks$end[root_blk]))
     y1_blk <- c(y1_blk[keep], min(blocks$start[root_blk]))
+    stem0 <- c(stem0[keep], TRUE)
+    stem1 <- c(stem1[keep], FALSE)                   # first root: no stem
   }
   trunk <- list(
     x = x_blk,
-    y0 = pos[y0_blk],
-    y1 = pos[y1_blk]
+    y0 = ifelse(stem0, stem_y(y0_blk), pos[y0_blk]),
+    y1 = ifelse(stem1, stem_y(y1_blk), pos[y1_blk])
   )
   # Elbow per node: horizontal rule width 1 em + sep gap, at the node's row
   # from its trunk column (dtx:763-764). Roots' rule spans pitch/2 -> label.
@@ -129,8 +156,10 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   )
 }
 
-# Run-length blocks of children grouped by connector-parent, in row order.
-# Returns start/end row indices (into the full table) and root flag.
+#' Run-length blocks of rows grouped by connector-parent (roots are the NA
+#' run), in row order. Returns start/end row indices and root flag.
+#' @keywords internal
+#' @noRd
 .rle_rows <- function(cp_child, cp_row) {
   r <- rle(cp_child)
   end <- cumsum(r$lengths)
@@ -143,15 +172,17 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   )
 }
 
-# Per-node display labels: rank prefix; " × N" on EVERY node whose label is
-# a rollup (n > 1) — the gold generator (figures/chapter3/firing_lineages_DA_sorted.tex)
-# shows "f_Pirellulaceae × 2" above its child row, "o_Planctomycetales × 3",
-# "p_SAR324 clade × 4": multi-label paths are marked at any rank. Prefix set
-# mirrors the gold p_/c_/o_/f_/g_ (s_ for species), typewriter style.
+#' Per-node display labels: rank prefix; " × N" on EVERY node whose label is
+#' a rollup (n > 1) — the gold generator
+#' (figures/chapter3/firing_lineages_DA_sorted.tex) shows
+#' "f_Pirellulaceae × 2" above its child row, "o_Planctomycetales × 3",
+#' "p_SAR324 clade × 4": multi-label paths are marked at any rank. Prefix set
+#' mirrors the gold p_/c_/o_/f_/g_ (s_ for species), typewriter style.
+#' @keywords internal
+#' @noRd
 dirtree_labels <- function(nodes, prefixes = c("p_", "c_", "o_", "f_", "g_", "s_")) {
-  pre <- ifelse(nodes$level < length(prefixes),
-                prefixes[nodes$level + 1L],
-                paste0("#", nodes$level, "_"))
-  mult <- ifelse(nodes$n > 1L, paste0(" \u00d7 ", nodes$n), "")
-  paste0(pre, nodes$label, mult)
+  paste0(
+    .dirtree_prefix_vec(nodes$level, prefixes), nodes$label,
+    ifelse(nodes$n > 1L, paste0(" \u00d7 ", nodes$n), "")
+  )
 }

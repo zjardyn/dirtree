@@ -10,8 +10,9 @@
 #'
 #' `guide_dirtree()` replaces the plain text labels of a discrete position
 #' scale with a directory-style tree (rank columns, `|_` connectors,
-#' `p_`/`c_`/`o_`/`f_`/`g_` prefixes, ` × N` collapse counts on terminal
-#' nodes). Build the node table with [dirtree_data()], plot on its
+#' `p_`/`c_`/`o_`/`f_`/`g_` prefixes, ` × N` rollup counts (`n > 1`, at any
+#' rank — the gold generator marks `f_Pirellulaceae × 2` above its child
+#' row). Build the node table with [dirtree_data()], plot on its
 #' `node_key` column, and pass the same table here.
 #'
 #' @param nodes A node table from [dirtree_data()].
@@ -21,15 +22,14 @@
 #'   [ggplot2::guide_axis()]; `position` must be a horizontal or vertical
 #'   axis (`"top"`/`"right"` secondary axes are not supported in v1).
 #' @param angle,n.dodge,minor.ticks,cap Unsupported by the tree guide;
-#'   supplying them (including `NULL`) errors.
-#' @inheritParams ggplot2::guide_axis
+#'   supplying them at all (any value, including `NULL`) errors.
 #' @family axes
 #' @examples
 #' d <- dirtree_data(subset(tax_lineages, marker == "16S"))
-#' ggplot(d, ggplot2::aes(x = node_key, y = n)) +
+#' ggplot2::ggplot(d, ggplot2::aes(x = node_key, y = n)) +
 #'   ggplot2::geom_col() +
 #'   ggplot2::scale_x_discrete(limits = d$node_key, breaks = d$node_key) +
-#'   guides(x = guide_dirtree(nodes = d)) +
+#'   ggplot2::guides(x = guide_dirtree(nodes = d)) +
 #'   ggplot2::theme_minimal() +
 #'   ggplot2::theme(axis.text.x = ggplot2::element_blank())
 #' @export
@@ -37,13 +37,14 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
                           nodes = NULL, prefixes = c("p_", "c_", "o_", "f_", "g_", "s_"),
                           angle = NULL, n.dodge = NULL, minor.ticks = NULL,
                           cap = NULL, order = 0, position = ggplot2::waiver()) {
-  for (nm in c("angle", "n.dodge", "minor.ticks", "cap")) {
-    if (!is.null(get(nm))) {
-      .dt_abort(c(
-        paste0("{.fn guide_dirtree} does not support {.arg ", nm, "}."),
-        i = "The tree lays out its own ranks; see {.fn dirtree_geom}-backed args in {.fn dirtree_grob}."
-      ))
-    }
+  # Explicitly supplied args only — match.call() records what the caller
+  # wrote, so `angle = NULL` aborts like any other value (plan rule 3).
+  supplied <- names(match.call())[-1L]
+  for (nm in intersect(c("angle", "n.dodge", "minor.ticks", "cap"), supplied)) {
+    .dt_abort(c(
+      paste0("{.fn guide_dirtree} does not support {.arg ", nm, "}."),
+      i = "The tree lays out its own ranks; see {.fn dirtree_geom}-backed args in {.fn dirtree_grob}."
+    ))
   }
   if (is.null(nodes)) {
     .dt_abort(c(
@@ -59,6 +60,14 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
       list(nodes = NULL, prefixes = prefixes)
     ),
     build_labels = function(key, elements, params) {
+      # The resolved axis position arrives in params at build time (probe:
+      # ggplot2 4.0.4 puts the concrete "top"/"bottom"/... string there).
+      if (isTRUE(params$position %in% c("top", "right"))) {
+        .dt_abort(c(
+          "{.fn guide_dirtree} does not support the {.val {params$position}} position.",
+          i = "The tree grows away from the panel; v1 supports {.val bottom} and {.val left} axes."
+        ))
+      }
       if (".type" %in% names(key)) {
         key <- vctrs::vec_slice(key, key$.type == "major")
       }
@@ -85,8 +94,7 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
         ))
       }
       nd$parent <- as.integer(newpar)
-      leaf <- !(seq_len(nrow(nd)) %in% nd$parent[!is.na(nd$parent)])
-      text <- .dirtree_prefixed(labels, nd$level, params$prefixes, nd$n, leaf)
+      text <- .dirtree_prefixed(nd$label, nd$level, params$prefixes, nd$n)
       gp <- grid::gpar(
         col = elements$text$colour,
         fontsize = elements$text$size,
@@ -110,7 +118,10 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
   )
 }
 
-# Node table shape (plan validation rule 1).
+#' Node-table shape + depth-first contract at the guide constructor (plan
+#' validation rule 1).
+#' @keywords internal
+#' @noRd
 .check_dirtree_node_table <- function(nodes) {
   need <- c("label", "level", "parent", "n", "node_key")
   if (!is.data.frame(nodes) || !all(need %in% names(nodes))) {
@@ -149,36 +160,14 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
   invisible(TRUE)
 }
 
-# Strip a rank prefix from a break label (breaks are plotted on the prefixed
-# node_key), re-prefix by node level, add " × N" on terminal nodes.
-.dirtree_prefixed <- function(labels, levels, prefixes, n, leaf) {
-  bare <- sub("^[pcofgs]_", "", labels)
-  bare <- sub("^#[0-9]+_", "", bare)
-  pre <- ifelse(levels < length(prefixes), prefixes[levels + 1L],
-                paste0("#", levels, "_"))
-  mult <- ifelse(leaf & n > 1L, paste0(" \u00d7 ", n), "")
-  paste0(pre, bare, mult)
-}
-
-# Validate a bare depth-first level vector and derive parents (used by
-# dirtree_data() and tests; plan validation rule 2 - the abort requires a
-# NON-EMPTY bad index: valid trees like c(0,1,2,3,4,0,1,2,3,4) must pass).
-.dirtree_nodes_from_levels <- function(levels) {
-  levels <- as.integer(levels)
-  parent <- vapply(seq_along(levels), function(i) {
-    if (levels[i] == 0L) {
-      NA_integer_
-    } else {
-      cand <- which(levels[seq_len(i - 1L)] == levels[i] - 1L)
-      if (length(cand) == 0L) NA_integer_ else max(cand)
-    }
-  }, integer(1))
-  bad <- which(is.na(parent) & levels > 0L)
-  if (length(bad) > 0L) {
-    .dt_abort(c(
-      "Break {bad[1]} has rank depth {levels[bad[1]]} with no parent at depth {levels[bad[1]] - 1L} above it.",
-      i = "Breaks must be in depth-first tree order (see {.fn dirtree_data})."
-    ))
-  }
-  vctrs::data_frame(label = NA_character_, level = levels, parent = parent)
+#' Re-prefix bare node labels by level and append the ` × N` rollup count
+#' (`n > 1`, any rank — gold generator rule). Breaks arrive as bare labels:
+#' the scale renders `node_key`, which is exactly this prefix + label +
+#' dedup-suffix string (`.dirtree_prefix_keys`), so no stripping is needed.
+#' @keywords internal
+#' @noRd
+.dirtree_prefixed <- function(labels, levels, prefixes, n) {
+  pre <- .dirtree_prefix_vec(levels, prefixes)
+  mult <- ifelse(n > 1L, paste0(" \u00d7 ", n), "")
+  paste0(pre, labels, mult)
 }

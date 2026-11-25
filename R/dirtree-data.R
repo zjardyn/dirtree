@@ -24,11 +24,16 @@
 #'
 #' @export
 dirtree_data <- function(x, ranks = NULL) {
-  ranks <- .dirtree_ranks(x, ranks, call = rlang::call_frame())
+  ranks <- .dirtree_ranks(x, ranks)
   paths <- .dirtree_paths(x, ranks)
   .dirtree_nodes(paths)
 }
 
+#' Resolve and validate the `ranks` argument: default to the canonical
+#' taxonomic columns present in `x`; abort on non-character input and on
+#' columns missing from `x` (plan validation rules, with `{?s}` pluralisation).
+#' @keywords internal
+#' @noRd
 .dirtree_ranks <- function(x, ranks, call = rlang::caller_env()) {
   if (is.null(ranks)) {
     ranks <- intersect(
@@ -63,6 +68,10 @@ dirtree_data <- function(x, ranks = NULL) {
 # Standard taxonomy truncation: a row with an unassigned Family has no usable
 # Order/Family/Genus path, so it stops before the blank. The 16S source table
 # has no Species column, so 16S rows stop at genus naturally.
+#' Unique rank paths over the leaf rows, in first-appearance (depth-first)
+#' order, with leaf counts per path.
+#' @keywords internal
+#' @noRd
 .dirtree_paths <- function(x, ranks) {
   m <- as.matrix(x[ranks])
   blank <- is.na(m) | m == ""
@@ -79,6 +88,11 @@ dirtree_data <- function(x, ranks = NULL) {
 # before its children (a parent key is a proper prefix of its children's keys,
 # and "\r" sorts below every printable character used in taxon names), with
 # each node's children contiguous - i.e. depth-first.
+#' Expand unique paths into the node table: one row per tree node (internal
+#' ranks included), parents by nearest-preceding level - 1, leaf counts
+#' accumulated up the tree.
+#' @keywords internal
+#' @noRd
 .dirtree_nodes <- function(paths) {
   prefixes <- lapply(paths, function(p) {
     vapply(seq_along(p), function(k) paste(p[seq_len(k)], collapse = "\r"),
@@ -114,18 +128,25 @@ dirtree_data <- function(x, ranks = NULL) {
   )
 }
 
-# Unique axis key per node: rank-prefixed label, deduplicated across ranks
-# (a taxon string can name an order and a family at once, e.g.
-# Vampirovibrionales). Suffixes are ".2", ".3", ... in tree order.
+#' Base rank prefix per level (single source for keys and display).
+#' @keywords internal
+#' @noRd
+.dirtree_prefix_vec <- function(level, prefixes) {
+  ifelse(level < length(prefixes), prefixes[level + 1L], paste0("#", level, "_"))
+}
+
+#' Unique axis key per node: rank-prefixed label, deduplicated across ranks
+#' (a taxon string can name an order and a family at once, e.g.
+#' Vampirovibrionales). Suffixes are ".2", ".3", ... in tree order.
+#' @keywords internal
+#' @noRd
 .dirtree_prefix_keys <- function(label, level,
                                  prefixes = c("p_", "c_", "o_", "f_", "g_", "s_")) {
-  pre <- ifelse(level < length(prefixes), prefixes[level + 1L],
-                paste0("#", level, "_"))
-  key <- paste0(pre, label)
+  key <- paste0(.dirtree_prefix_vec(level, prefixes), label)
   dup <- duplicated(key)
   if (any(dup)) {
     base <- key[dup]
-    counts <- ave(seq_along(base), base, FUN = seq_along) + 1L
+    counts <- stats::ave(seq_along(base), base, FUN = seq_along) + 1L
     key[dup] <- paste0(base, ".", counts)
   }
   key

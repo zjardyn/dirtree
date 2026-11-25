@@ -10,6 +10,22 @@ plot_nodes <- function(d, breaks = d$node_key, guide = guide_dirtree(nodes = d))
     ggplot2::theme(axis.text.x = ggplot2::element_blank())
 }
 
+# All character labels rendered anywhere in a built gtable (clamped unit
+# conversion: "grobwidth"-derived units are unconvertible on some devices).
+rendered_text <- function(g, clamp = 500) {
+  out <- character()
+  walk <- function(x) {
+    if (inherits(x, "textGrid") || inherits(x, "text")) {
+      v <- tryCatch(as.numeric(x$label), warning = function(w) NA_real_)
+      if (is.character(x$label) || !is.na(v)) out <<- c(out, as.character(x$label))
+    }
+    if (!is.null(x$children)) lapply(x$children, walk)
+    if (!is.null(x$grobs)) lapply(x$grobs, walk)
+  }
+  walk(g)
+  out
+}
+
 test_that("guide_dirtree() builds a guide from the node table", {
   d <- dirtree_data(toy_lineages())
   g <- guide_dirtree(nodes = d)
@@ -17,11 +33,19 @@ test_that("guide_dirtree() builds a guide from the node table", {
   expect_identical(g$params$nodes$node_key, d$node_key)
 })
 
-test_that("plot builds; axis labels are re-prefixed, leaves carry × N", {
-  tl <- rbind(toy_lineages(), toy_lineages()[1, ])  # leaf G1 collapses (n = 2)
+test_that("plot builds; axis labels are re-prefixed, rollups carry × N at any rank", {
+  tl <- rbind(toy_lineages(), toy_lineages()[1, ])  # G1 duplicated: F1 n = 2
   d <- dirtree_data(tl)
   gl <- ggplot2::ggplotGrob(plot_nodes(d))
-  expect_s3_class(gl, "gtable")   # RED until the nodes contract lands
+  expect_s3_class(gl, "gtable")
+  txt <- rendered_text(gl)
+  # The × N contract is guarded on the RENDERED axis (B5/sentinel M2): an
+  # internal rollup must print a multiplier, leaves with n > 1 too.
+  # Duplicated G1: F1 subtree = {G1, G1, G2} -> n = 3; P1 = 3; G2 stays 1.
+  expect_true(any(grepl("f_F1 \u00d7 3", txt, fixed = TRUE)))
+  expect_true(any(grepl("p_P1 \u00d7 3", txt, fixed = TRUE)))
+  expect_true(any(grepl("g_G1 \u00d7 2", txt, fixed = TRUE)))
+  expect_false(any(grepl("g_G2 \u00d7", txt, fixed = TRUE)))
 })
 
 test_that("composed axis band is sized by the tree (band below panel > plain axis)", {
@@ -60,10 +84,22 @@ test_that("constructor rejects unsupported guide_axis args by name", {
       arg, fixed = TRUE
     )
   }
+  # explicit NULL is a supply (B6): the documented case must abort too
+  expect_error(guide_dirtree(nodes = d, angle = NULL), "angle", fixed = TRUE)
 })
 
-test_that("missing nodes aborts with guidance", {
-  expect_error(guide_dirtree(), "nodes")
+test_that("missing nodes aborts with guidance; shape aborts name the contract", {
+  # discriminator: the guard's own message, not a substring the shape
+  # abort also matches (sentinel BLOCKER 4)
+  expect_error(guide_dirtree(), "needs `nodes`", fixed = TRUE)
+  expect_error(guide_dirtree(nodes = data.frame(x = 1)),
+               "must be a node table", fixed = TRUE)
+})
+
+test_that("top/right positions abort instead of drawing into the panel (R1)", {
+  d <- dirtree_data(toy_lineages())
+  p <- plot_nodes(d, guide = guide_dirtree(nodes = d, position = "top"))
+  expect_error(ggplot2::ggplotGrob(p), "top", fixed = TRUE)
 })
 
 test_that("y-axis placement works (vertical tree)", {

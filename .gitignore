@@ -6,3 +6,5 @@ Rplots.pdf
 template/
 .DS_Store
 .dev/*.log
+.R/
+.dev/*-out.txt

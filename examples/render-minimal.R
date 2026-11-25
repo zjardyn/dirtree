@@ -6,14 +6,8 @@ build_shim <- function(root) {
   dir.create(shim, recursive = TRUE, showWarnings = FALSE)
   file.copy(list.files(root, pattern = "^R$|data|^DESCRIPTION", full.names = TRUE),
             shim, recursive = TRUE)
-  writeLines(c(
-    "export(dirtree_data)", "export(guide_dirtree)",
-    "import(rlang)", "import(grid)", "import(vctrs)",
-    "importFrom(ggplot2,ggproto)", "importFrom(ggplot2,waiver)",
-    "S3method(grid::heightDetails,dirtreeGrob)",
-    "S3method(grid::widthDetails,dirtreeGrob)",
-    "importFrom(rlang,\"%||%\")"),
-    file.path(shim, "NAMESPACE"))
+  writeLines(readLines(file.path(root, "NAMESPACE")),
+             file.path(shim, "NAMESPACE"))
   lib <- file.path(tempdir(), "lib")
   dir.create(lib, showWarnings = FALSE)
   install.packages(shim, repos = NULL, type = "source", lib = lib, quiet = TRUE)

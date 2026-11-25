@@ -27,17 +27,25 @@ test_that("rank-string collisions across ranks get distinct node_keys", {
   expect_identical(length(unique(d$node_key)), nrow(d))
 })
 
-test_that("canonical depth-first level vector builds a valid tree", {
-  # plan validation rule 2 / sentinel round-1 NOTE: guard must not fire on
-  # valid trees. This is the canonical two-root tree.
-  expect_depth_first_ok(levels_canonical)
+test_that("depth-first contract: valid tables pass, broken ones abort naming the row", {
+  # plan validation rule 2, on the SHIPPING validator (.check_dirtree_node_
+  # table; the dead .dirtree_nodes_from_levels helper was deleted with these
+  # tests). Guard must not fire on the canonical two-root tree.
+  d <- dirtree_data(toy_lineages())
+  expect_true(dirtree:::.check_dirtree_node_table(d))
+  bad <- d
+  bad$parent[2] <- NA_integer_  # level-1 row without a parent
+  expect_error(dirtree:::.check_dirtree_node_table(bad),
+               "depth-first contract", fixed = TRUE)
 })
 
-test_that("non-depth-first level vectors abort naming the break", {
-  expect_error(
-    dirtree:::.dirtree_nodes_from_levels(levels_broken),
-    "no parent at depth"
-  )
+test_that("ranks validation aborts RENDER their messages (B1)", {
+  x <- toy_lineages()
+  # the call_frame crash turned every validation into an internal error
+  expect_error(dirtree_data(x, ranks = 2),
+               "non-empty character", fixed = TRUE)
+  expect_error(dirtree_data(x, ranks = "Nope"),
+               "not found", fixed = TRUE)
 })
 
 test_that("shipped 16S subset yields 40 nodes spanning ranks 0..4", {

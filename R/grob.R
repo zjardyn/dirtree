@@ -3,7 +3,7 @@
 #
 # The grob is a classed gTree ("dirtreeGrob") with registered
 # heightDetails/widthDetails methods: a bare gTree measures 0, and ggplot2
-# reserves the axis label row from the measured size (plan reviewer #2).
+# reserves the axis band from the measured size (plan round 2, MAJOR-B).
 #
 # Connector shape (dirtree.dtx:646-773, transcribed): a vertical trunk rule
 # at the parent's rank column from the parent's baseline (+0.5 row for first
@@ -74,10 +74,15 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   )
 }
 
-# Size report: the band's depth (perpendicular to the axis) is the tree's
-# extent (rank columns + rotated label length on the x-axis; rank columns on
-# the y-axis); the along-axis extent is the full cell (the panel span).
-# Consumed by ggplot2's measure_grobs via grid height/width generics.
+#' Size report: the band's depth (perpendicular to the axis) is the tree's
+#' extent (rank columns + rotated label length on the x-axis; rank columns on
+#' the y-axis); the along-axis extent is the full cell (the panel span).
+#' Consumed by ggplot2's measure_grobs via grid height/width generics.
+#' Registered via @rawNamespace: `@export` on these methods emits NO
+#' S3method line (roxygen cannot resolve the generic — grid is not
+#' imported), measured in the post-exec sweep; the qualification is required.
+#' @keywords internal
+#' @noRd
 #' @rawNamespace S3method(grid::heightDetails, dirtreeGrob)
 #' @rawNamespace S3method(grid::widthDetails, dirtreeGrob)
 heightDetails.dirtreeGrob <- function(x) {
@@ -89,9 +94,11 @@ widthDetails.dirtreeGrob <- function(x) {
   else grid::unit(1, "npc")
 }
 
-# Boundary validation for direct dirtree_grob() calls (the guide validates
-# the key/node alignment at its own slice site; this guards the ggplot-free
-# core: plan validation rule 4).
+#' Boundary validation for direct dirtree_grob() calls (the guide validates
+#' the key/node alignment at its own slice site; this guards the ggplot-free
+#' core: plan validation rule 4).
+#' @keywords internal
+#' @noRd
 .check_dirtree_inputs <- function(nodes, labels, pos) {
   need <- c("label", "level", "parent", "n")
   if (!is.data.frame(nodes) || !all(need %in% names(nodes))) {
@@ -113,6 +120,10 @@ widthDetails.dirtreeGrob <- function(x) {
   invisible(TRUE)
 }
 
+#' Rule gpar: thin butt-capped lines inheriting colour/linewidth from the
+#' theme text, drawn under the labels.
+#' @keywords internal
+#' @noRd
 rule_gp <- function(gp) {
   g <- grid::gpar(linewidth = 0.4, lineend = "butt", linejoin = "mitre")
   if (!is.null(gp)) {

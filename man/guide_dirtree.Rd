@@ -28,21 +28,22 @@ axis (\code{"top"}/\code{"right"} secondary axes are not supported in v1).}
 \code{c("p_","c_","o_","f_","g_","s_")}. Display only.}
 
 \item{angle, n.dodge, minor.ticks, cap}{Unsupported by the tree guide;
-supplying them (including \code{NULL}) errors.}
+supplying them at all (any value, including \code{NULL}) errors.}
 }
 \description{
 \code{guide_dirtree()} replaces the plain text labels of a discrete position
 scale with a directory-style tree (rank columns, \verb{|_} connectors,
-\code{p_}/\code{c_}/\code{o_}/\code{f_}/\code{g_} prefixes, \verb{ × N} collapse counts on terminal
-nodes). Build the node table with \code{\link[=dirtree_data]{dirtree_data()}}, plot on its
+\code{p_}/\code{c_}/\code{o_}/\code{f_}/\code{g_} prefixes, \verb{ × N} rollup counts (\code{n > 1}, at any
+rank — the gold generator marks \verb{f_Pirellulaceae × 2} above its child
+row). Build the node table with \code{\link[=dirtree_data]{dirtree_data()}}, plot on its
 \code{node_key} column, and pass the same table here.
 }
 \examples{
 d <- dirtree_data(subset(tax_lineages, marker == "16S"))
-ggplot(d, ggplot2::aes(x = node_key, y = n)) +
+ggplot2::ggplot(d, ggplot2::aes(x = node_key, y = n)) +
   ggplot2::geom_col() +
   ggplot2::scale_x_discrete(limits = d$node_key, breaks = d$node_key) +
-  guides(x = guide_dirtree(nodes = d)) +
+  ggplot2::guides(x = guide_dirtree(nodes = d)) +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x = ggplot2::element_blank())
 }
