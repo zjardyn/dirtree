@@ -26,6 +26,6 @@ sed -i 's/if (is.null(nodes)) {/if (FALSE) {/' R/guide.R
 grep -q "if (FALSE) {" R/guide.R && run "M3 nodes-guard removed"
 
 # M4: guide forces vertical=TRUE (orientation forwarding broken toward y)
-sed -i 's/vertical = isTRUE(params\$vertical)/vertical = TRUE/' R/guide.R
-grep -q "vertical = TRUE)" R/guide.R && run "M4 guide vertical forced TRUE"
+sed -i 's/vertical = isTRUE(params\\\$vertical)/vertical = TRUE/' R/guide.R
+grep -q "vertical = TRUE$" R/guide.R && run "M4 guide vertical forced TRUE"
 echo "done"

@@ -72,7 +72,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y0 = py(ly$tick$y0[show], ly$tick$x0[show]),
     x1 = px(ly$tick$y1[show], ly$tick$x1[show]),
     y1 = py(ly$tick$y1[show], ly$tick$x1[show]),
-    gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
+    gp = rule_gp(gp, ly$geom$rule), name = "dirtree-arms"
   )
   txt <- grid::textGrob(
     label = labels,
