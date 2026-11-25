@@ -59,7 +59,9 @@ test_that("connector rules use the endpoint API and span the break range", {
   expect_gt(sum(npc), 0L)
   # all along-axis endpoints lie in the cell
   expect_true(all(vals >= 0 & vals <= 1))
-  expect_gte(sum(vals %in% pos), 2L)
+  # and sit at (or a baseline offset from) a break row
+  expect_gte(sum(vapply(vals, function(v) any(abs(v - pos) < 0.25 / nrow(d)),
+                           TRUE)), 2L)
 })
 
 test_that("rank columns are the exact dtx pitch on every row (M4/M5)", {
@@ -80,7 +82,7 @@ test_that("trunks hang from the parent's box bottom to the last arm (M6)", {
   # Gold: block trunk = children's corner column, parent centre - 0.44 row
   # (box bottom) down to last child's arm (centre - 0.21 row) - no stem.
   d <- dirtree_data(toy_lineages())
-  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  pos <- rev((seq_len(nrow(d)) - 0.5) / nrow(d))     # guide direction: root top
   lay <- dirtree:::dirtree_layout(d, pos, vertical = TRUE)
   em <- lay$geom$em
   n <- nrow(d)
@@ -93,13 +95,15 @@ test_that("trunks hang from the parent's box bottom to the last arm (M6)", {
                    ends)
   expect_length(f1_blk, 1L)
   e <- f1_blk[[1]]
-  expect_equal(e[1], pos[f1] - 0.44 * pitch, tolerance = 1e-8)
-  expect_equal(e[2], pos[max(kids)] - 0.21 * pitch, tolerance = 1e-8)
+  # rev(pos): later rows are smaller npc, so the sorted pair is
+  # (last child's arm, parent's box bottom)
+  expect_equal(e[1], pos[max(kids)] - 0.21 * pitch, tolerance = 1e-8)
+  expect_equal(e[2], pos[f1] - 0.44 * pitch, tolerance = 1e-8)
 })
 
 test_that("root trunk spans first root's centre to the last root's arm", {
   d <- dirtree_data(toy_lineages())                  # two roots: rows 1 and 7
-  pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
+  pos <- rev((seq_len(nrow(d)) - 0.5) / nrow(d))     # guide direction: root top
   lay <- dirtree:::dirtree_layout(d, pos, vertical = TRUE)
   em <- lay$geom$em
   pitch <- 1 / nrow(d)
@@ -121,22 +125,24 @@ test_that("root trunk spans first root's centre to the last root's arm", {
 
 test_that("arms run from the node's own corner on the baseline row", {
   # Gold: the 1 em arm starts at the node's OWN corner column (root column
-  # included) and lies on the text baseline = 0.21 row under the slot centre
-  # (y-axis; centred rows on the rotated x-axis). Row 1 is unconnected.
+  # included) and lies on the text baseline = 0.21 row toward later rows
+  # (under the slot centre on a top-down y-axis; right of it on the rotated
+  # x-axis — the y model rotated, not a centred variant). Row 1 is
+  # unconnected.
   d <- dirtree_data(toy_lineages())
   pos <- (seq_len(nrow(d)) - 0.5) / nrow(d)
   em <- dirtree:::dirtree_geom()$em
   n <- nrow(d)
   pitch <- 1 / n
   x_conn_em <- (4L - d$level) * 1.4 + 0.2   # flipped: roots outermost
-  ly_y <- dirtree:::dirtree_layout(d, pos, vertical = TRUE)
+  ly_y <- dirtree:::dirtree_layout(d, rev(pos), vertical = TRUE)
   ly_x <- dirtree:::dirtree_layout(d, pos, vertical = FALSE)
   expect_equal(ly_y$tick$x0, em * x_conn_em, tolerance = 1e-8)
   expect_equal(ly_y$tick$x1, em * (x_conn_em - 1), tolerance = 1e-8)
   expect_equal(ly_x$tick$x0, em * x_conn_em, tolerance = 1e-8)
   expect_equal(ly_x$tick$x1, em * (x_conn_em - 1), tolerance = 1e-8)
-  expect_equal(ly_y$tick$y0, pos - 0.21 * pitch, tolerance = 1e-8)
-  expect_equal(ly_x$tick$y0, pos, tolerance = 1e-8)
+  expect_equal(ly_y$tick$y0, rev(pos) - 0.21 * pitch, tolerance = 1e-8)
+  expect_equal(ly_x$tick$y0, pos + 0.21 * pitch, tolerance = 1e-8)
   expect_equal(ly_y$tick$show, seq_len(n) > 1L)
   # vectorization guard: arms at different ranks sit at different depths
   expect_gt(length(unique(round(ly_y$tick$x0 / em, 6))), 2L)

@@ -105,9 +105,16 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   # baseline and the trunk bottoms fall short of the next row. The rotated
   # x-axis has no along-axis baseline rule, so it keeps centred placement.
   pitch_npc <- if (n > 1L) stats::median(abs(diff(sort(pos)))) else 0
-  arm_y <- if (vertical) pos - 0.21 * pitch_npc else pos
-  leg_top <- if (vertical) pos - 0.44 * pitch_npc else pos
-  root_top_y <- if (vertical) pos - 0.02 * pitch_npc else pos
+  # Along-axis offsets point toward LATER rows (the gold's baseline sits 0.21
+  # row under the slot centre, a block trunk starts at the parent's box
+  # bottom, 0.44 row under). Later rows are smaller npc on a top-down y-axis
+  # and larger npc on a left-to-right x-axis, so the sign follows the row
+  # direction actually passed in (tree order) — the rotated x-axis is the
+  # y-axis model rotated, not a centred variant (#380).
+  sgn <- if (n > 1L) sign(stats::median(diff(pos))) else 1
+  arm_y <- pos + sgn * 0.21 * pitch_npc
+  leg_top <- pos + sgn * 0.44 * pitch_npc
+  root_top_y <- pos + sgn * 0.02 * pitch_npc
 
   kid <- !is.na(cp)
   # Block membership: a child is the FIRST child of its parent if the
