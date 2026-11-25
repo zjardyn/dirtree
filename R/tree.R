@@ -56,7 +56,7 @@ dirtree_geom <- function(offset_em = 0.2, width_em = 1, sep_em = 0.2,
 #' @noRd
 #' @importFrom stats median
 dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
-                          geom = dirtree_geom()) {
+                          geom = dirtree_geom(), vertical = TRUE) {
   n <- nrow(nodes)
   if (n == 0L) {
     return(NULL)
@@ -140,11 +140,17 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     y0 = ifelse(stem0, stem_y(y0_blk), pos[y0_blk]),
     y1 = ifelse(stem1, stem_y(y1_blk), pos[y1_blk])
   )
-  # Elbow per node: horizontal rule width 1 em + sep gap, at the node's row
-  # from its trunk column (dtx:763-764). For roots the rule ends at the label
-  # corner (pitch/2 -> pitch - width - sep), not a full 1 em.
+  # Connector into each node's label (dtx:763-764), expressed in the tree's
+  # own frame: a leg perpendicular to the trunks, from the parent's column
+  # into the label. On a bottom (x) axis the tree is rotated: trunks are
+  # horizontal and the leg drops straight from the trunk into the label
+  # corner. On a left (y) axis it is the LaTeX elbow: a horizontal 1 em rule
+  # from the trunk column, then the sep gap, then the label. For roots the
+  # leg ends at the label corner (pitch/2 -> pitch - width - sep).
   tick <- list(
-    x0 = x_conn, x1 = ifelse(lvl == 0L, x_label, x_rule_end),
+    x0 = x_conn,
+    x1 = ifelse(lvl == 0L, x_label,
+                ifelse(vertical, x_rule_end, x_conn)),
     y0 = pos, y1 = pos
   )
   list(

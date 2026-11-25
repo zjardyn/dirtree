@@ -20,7 +20,8 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   fontsize <- gp$fontsize %||% gp$size %||% 12
   geom <- geom %||% dirtree_geom(em_in = fontsize / 72.27)
   text_len <- nchar(as.character(labels)) * 0.55 * fontsize / 72.27
-  ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom)
+  ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom,
+                       vertical = vertical)
   if (is.null(ly)) {
     return(grid::grid.null())
   }
@@ -35,20 +36,27 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     else grid::unit(d, "inches")
   }
   depth_y <- function(d) grid::unit(1, "npc") - grid::unit(d, "inches")
+  # Axis-aware placement: a point (row r, depth d). Rows keep the break
+  # order (r = break npc); the x-axis grows the tree downward from the band
+  # top, the y-axis leftward from the axis line.
+  px <- function(r, d) if (vertical) depth_x(d) else along(r)
+  py <- function(r, d) if (vertical) along(r)   else depth_y(d)
   trunk <- grid::segmentsGrob(
-    x0 = if (vertical) depth_x(ly$trunk$x) else along(ly$trunk$y0),
-    y0 = if (vertical) along(ly$trunk$y0)    else depth_y(ly$trunk$x),
-    x1 = if (vertical) depth_x(ly$trunk$x) else along(ly$trunk$y1),
-    y1 = if (vertical) along(ly$trunk$y1)    else depth_y(ly$trunk$x),
+    x0 = px(ly$trunk$y0, ly$trunk$x),
+    y0 = py(ly$trunk$y0, ly$trunk$x),
+    x1 = px(ly$trunk$y1, ly$trunk$x),
+    y1 = py(ly$trunk$y1, ly$trunk$x),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
-  # Horizontal rule (dtx:763): width 1 em at the node's row, from its
-  # trunk column; roots' rules run from the free trunk at pitch/2.
+  # Leg into each node's label (dtx:763-764): the y-axis elbow is the
+  # horizontal 1 em rule from the trunk column; on the rotated x-axis the
+  # leg drops from the trunk depth into the label corner (x1 == x0 in the
+  # layout keeps the drop perpendicular to the horizontal trunks).
   hrule <- grid::segmentsGrob(
-    x0 = if (vertical) depth_x(ly$tick$x0) else along(ly$y),
-    y0 = if (vertical) along(ly$x)         else depth_y(ly$tick$x0),
-    x1 = if (vertical) depth_x(ly$tick$x1) else along(ly$y),
-    y1 = if (vertical) along(ly$x)         else depth_y(ly$tick$x1),
+    x0 = px(ly$tick$y0, ly$tick$x0),
+    y0 = py(ly$tick$y0, ly$tick$x0),
+    x1 = px(ly$tick$y1, ly$tick$x1),
+    y1 = py(ly$tick$y1, ly$tick$x1),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
   txt <- grid::textGrob(
