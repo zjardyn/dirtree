@@ -34,4 +34,17 @@ p2 <- ggplot(d, aes(y = node_key, x = n)) +
   guides(y = guide_dirtree(nodes = d)) +
   theme_minimal() + theme(axis.text.y = element_blank())
 ggsave("examples/minimal_16S_y.png", p2, width = 12, height = 11, dpi = 150)
-cat("wrote examples/minimal_16S.png and examples/minimal_16S_y.png\n")
+
+# Full dataset (16S + 18S with species tier): the gold's density
+d2 <- dirtree_data(tax_lineages)
+p3 <- ggplot(d2, aes(y = node_key, x = n)) +
+  geom_col(fill = "grey35") +
+  scale_y_discrete(limits = rev(as.character(d2$node_key)),
+                   breaks = rev(d2$node_key)) +
+  guides(y = guide_dirtree(nodes = d2)) +
+  theme_minimal(base_size = 10) +
+  theme(axis.text.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank())
+ggsave("examples/full_lineages_y.png", p3, width = 12, height = 13, dpi = 150)
+cat("wrote examples/minimal_16S.png, minimal_16S_y.png, full_lineages_y.png\n")
