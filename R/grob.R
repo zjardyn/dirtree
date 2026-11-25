@@ -12,9 +12,12 @@
 # line, then the 0.2 em gap, then the label growing toward the axis line
 # (tree outermost, labels between tree and panel, as in the gold). Roots
 # share their own corner column as a trunk spanning first root..last root's
-# arm. On the x-axis the tree is rotated 90 deg through the same coordinate
-# mapping; labels are rotated 90 deg there (ladder rows are panel-width/40
-# at 40 breaks — horizontal labels collide).
+# arm. On the x-axis the tree is MIRRORED into the axis band (user rule: the
+# trunk sits flush with the plot axis and the leaves dangle off the plot):
+# the root trunk lands just under the panel edge, ranks descend AWAY from
+# the axis, and labels read top-down (rot -90) growing off the plot. The
+# geometry formula is the gold's unchanged; only the depth->device mapping
+# flips (depth d = d inches up from the band's outer edge).
 
 dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
                         vertical = FALSE) {
@@ -38,16 +41,17 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   }
   along <- function(a) grid::unit(as.numeric(a), "npc")
   # Depth coordinates run from the axis line into the band. For the x-axis
-  # the axis line is the band TOP: grid y grows upward, so depth d maps to
-  # 1npc - d. (For the y-axis — a left axis — the axis line is the band's
-  # RIGHT edge, so depth runs from 1npc leftward.) The band's measured size
-  # equals the tree's deepest extent, so the 1npc expressions resolve
-  # against the band viewport.
+  # the axis line is the band TOP: the tree hangs from it, so depth d maps
+  # to d inches UP from the band's outer (bottom) edge — the root trunk
+  # (largest depth) lands just under the panel edge. (For the y-axis — a
+  # left axis — the axis line is the band's RIGHT edge, so depth runs from
+  # 1npc leftward.) The band's measured size equals the tree's deepest
+  # extent, so both mappings resolve against the band viewport.
   depth_x <- function(d) {
     if (vertical) grid::unit(1, "npc") - grid::unit(d, "inches")
     else grid::unit(d, "inches")
   }
-  depth_y <- function(d) grid::unit(1, "npc") - grid::unit(d, "inches")
+  depth_y <- function(d) grid::unit(d, "inches")
   # Axis-aware placement: a point (row r, depth d). Rows keep the break
   # order (r = break npc); the x-axis grows the tree downward from the band
   # top, the y-axis leftward from the axis line.
@@ -78,12 +82,13 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     label = labels,
     x = if (vertical) depth_x(ly$x_label) else along(ly$x),
     y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
-    # The label starts 1.2 em from its own trunk column on the AXIS side and
-    # grows toward the axis line (the gold model: tree outermost, labels
-    # between the tree and the panel).
+    # The label starts 1.2 em from its own trunk column on the tree's inner
+    # side and grows toward the axis line on the y-axis; on the mirrored
+    # x-axis it anchors on the outer side of the corner and dangles away
+    # from the axis line (rot -90, reading top-down).
     hjust = 0,
     vjust = 0.5,
-    rot = if (vertical) 0 else 90,
+    rot = if (vertical) 0 else -90,
     gp = gp, name = "label"
   )
   grid::gTree(

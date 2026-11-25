@@ -142,7 +142,7 @@ test_that("arms run from the node's own corner on the baseline row", {
   expect_equal(ly_x$tick$x0, em * x_conn_em, tolerance = 1e-8)
   expect_equal(ly_x$tick$x1, em * (x_conn_em - 1), tolerance = 1e-8)
   expect_equal(ly_y$tick$y0, rev(pos) - 0.21 * pitch, tolerance = 1e-8)
-  expect_equal(ly_x$tick$y0, pos + 0.21 * pitch, tolerance = 1e-8)
+  expect_equal(ly_x$tick$y0, pos - 0.21 * pitch, tolerance = 1e-8)
   expect_equal(ly_y$tick$show, seq_len(n) > 1L)
   # vectorization guard: arms at different ranks sit at different depths
   expect_gt(length(unique(round(ly_y$tick$x0 / em, 6))), 2L)
@@ -291,5 +291,5 @@ test_that("x-axis guide draws the rotated tree end to end", {
   expect_false(is.null(tree))
   expect_false(isTRUE(tree$vertical))
   txt <- tree$children[[3]]$children[[1]]
-  expect_true(all(as.numeric(txt$rot) == 90)) # rotated; the y plot (rot 0) pins the other side
+  expect_true(all(as.numeric(txt$rot) == -90)) # top-down dangle; the y plot (rot 0) pins the other side
 })

@@ -24,8 +24,8 @@
 #
 # Coordinates are NORMALISED: "along" = position along the axis band (the
 # row slot, mapped to npc break positions by the caller), "depth" = rank
-# indentation in inches (column 0 is the axis line; the band's top for the
-# x-axis is column 0).
+# indentation in inches (column 0 is the axis line on the y-axis; the
+# x-axis maps depth mirrored, the axis line at the band's top edge).
 
 #' Geometry constants transcribed from LaTeX dirtree v0.32 (`\DTsetlength`):
 #' offset/width/sep in em, rank pitch `DT@all = 1.4 em`, rule width, row
@@ -73,6 +73,9 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   # tree and the panel, the longest reaching the axis line). The whole tree
   # is shifted outward by `shift` so the longest label ends flush with the
   # axis line — the gold's proportion (tree, then labels, then bars).
+  # (The x-axis guide maps these same depth values MIRRORED: the root trunk
+  # lands flush at the plot axis and the labels dangle off the plot — see
+  # R/grob.R depth_y.)
   x_conn <- (max_lvl - lvl) * geom$pitch + geom$offset
   label_in <- if (is.null(text_len)) 0 else as.numeric(text_len)
   shift <- if (is.null(text_len)) {
@@ -102,19 +105,19 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   # Rows are axis npc; "under" is decreasing npc along the y-axis. Row units
   # are ROWS (the gold's baselineskip), converted with the row pitch — in
   # em units the arms/trunks sit a fraction of the label height off the
-  # baseline and the trunk bottoms fall short of the next row. The rotated
-  # x-axis has no along-axis baseline rule, so it keeps centred placement.
+  # baseline and the trunk bottoms fall short of the next row. The mirrored
+  # x-axis re-sets its labels top-down, so its descender side is LEFT of the
+  # slot centre — the same literal minus in npc.
   pitch_npc <- if (n > 1L) stats::median(abs(diff(sort(pos)))) else 0
-  # Along-axis offsets point toward LATER rows (the gold's baseline sits 0.21
-  # row under the slot centre, a block trunk starts at the parent's box
-  # bottom, 0.44 row under). Later rows are smaller npc on a top-down y-axis
-  # and larger npc on a left-to-right x-axis, so the sign follows the row
-  # direction actually passed in (tree order) — the rotated x-axis is the
-  # y-axis model rotated, not a centred variant (#380).
-  sgn <- if (n > 1L) sign(stats::median(diff(pos))) else 1
-  arm_y <- pos + sgn * 0.21 * pitch_npc
-  leg_top <- pos + sgn * 0.44 * pitch_npc
-  root_top_y <- pos + sgn * 0.02 * pitch_npc
+  # Along-axis offsets sit on the text's DESCENDER side, a fixed device-side
+  # rule independent of the row direction: the baseline is 0.21 row below
+  # the slot centre for horizontal labels (y-axis) and left of it for the
+  # x-axis' top-down labels; a block trunk starts at the parent's box
+  # bottom, 0.44 rows out on the same side; the root trunk starts 0.02 row
+  # out from the first root's centre. In npc both are a literal minus.
+  arm_y <- pos - 0.21 * pitch_npc
+  leg_top <- pos - 0.44 * pitch_npc
+  root_top_y <- pos - 0.02 * pitch_npc
 
   kid <- !is.na(cp)
   # Block membership: a child is the FIRST child of its parent if the
