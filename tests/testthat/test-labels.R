@@ -1,11 +1,12 @@
-test_that("display labels carry rank prefixes; × N prints on leaves only", {
+test_that("display labels carry rank prefixes; × N prints on every rollup (n > 1)", {
+  # Gold generator (figures/chapter3/firing_lineages_DA_sorted.tex) marks
+  # multi-label paths at any rank: "f_Pirellulaceae × 2" above its child.
   d <- dirtree_data(toy_lineages())
   lab <- dirtree:::dirtree_labels(d)
-  # internal node F1 has n = 2 but must NOT print a multiplier
   i_f1 <- which(d$label == "F1" & d$level == 3L)
-  expect_false(grepl("\u00d7", lab[i_f1]))
-  # leaves print n only when they collapse >1 identical path
-  expect_false(any(grepl("\u00d7", lab[d$level == 4L])))
+  expect_identical(d$n[i_f1], 2L)          # F1 collapses two genera
+  expect_true(grepl("f_F1 \u00d7 2$", lab[i_f1]))
+  expect_false(any(grepl("\u00d7", lab[d$n == 1L])))
   tl <- toy_lineages()
   tl <- rbind(tl, tl[1, ])  # duplicate genus path -> leaf collapse
   d2 <- dirtree_data(tl)

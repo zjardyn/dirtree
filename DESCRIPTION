@@ -1,6 +1,7 @@
 Package: dirtree
 Title: Directory-Style Taxonomy Trees as ggplot Axis Labels
 Version: 0.0.0.9000
+Language: en-US
 Authors@R: person("Hood", "Z. J.", , "zjardynhood@example.invalid", role = c("aut", "cre"))
 Description: Draws ranked hierarchies, such as microbial taxonomy from phylum to
     genus, as directory-style elbow trees that replace flat axis labels in

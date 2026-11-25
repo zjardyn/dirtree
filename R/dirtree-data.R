@@ -15,7 +15,7 @@
 #'   \item{level}{0-based rank depth of the node}
 #'   \item{parent}{row index (`integer`) of the node's parent, `NA` for roots}
 #'   \item{n}{number of leaf rows (input rows) under the node}
-#'   \item{node_key}{unique axis-break key: rank-prefixed label, de-duplicated
+#'   \item{node_key}{unique axis-break key: rank-prefixed label, deduplicated
 #'     across ranks (plot on this column; the guide re-adds the prefix for
 #'     display, so pass the scale's raw labels)}
 #'
@@ -114,7 +114,7 @@ dirtree_data <- function(x, ranks = NULL) {
   )
 }
 
-# Unique axis key per node: rank-prefixed label, de-duplicated across ranks
+# Unique axis key per node: rank-prefixed label, deduplicated across ranks
 # (a taxon string can name an order and a family at once, e.g.
 # Vampirovibrionales). Suffixes are ".2", ".3", ... in tree order.
 .dirtree_prefix_keys <- function(label, level,

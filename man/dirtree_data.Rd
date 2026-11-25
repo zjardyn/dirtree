@@ -18,7 +18,7 @@ A data frame with one row per tree node and columns:
 \item{level}{0-based rank depth of the node}
 \item{parent}{row index (\code{integer}) of the node's parent, \code{NA} for roots}
 \item{n}{number of leaf rows (input rows) under the node}
-\item{node_key}{unique axis-break key: rank-prefixed label, de-duplicated
+\item{node_key}{unique axis-break key: rank-prefixed label, deduplicated
 across ranks (plot on this column; the guide re-adds the prefix for
 display, so pass the scale's raw labels)}
 }

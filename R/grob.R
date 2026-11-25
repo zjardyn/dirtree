@@ -5,11 +5,13 @@
 # heightDetails/widthDetails methods: a bare gTree measures 0, and ggplot2
 # reserves the axis label row from the measured size (plan reviewer #2).
 #
-# Connector shape (gold standard): a trunk rule runs along the axis at the
-# parent's rank column from the parent's row to the parent's farthest child;
-# each child gets an elbow at its own row into its label. On the x-axis
-# labels are rotated 90 deg (ladder rows are panel-width/40 at 40 breaks --
-# horizontal labels collide); on the y-axis they are horizontal.
+# Connector shape (dirtree.dtx:646-773, transcribed): a vertical trunk rule
+# at the parent's rank column from the parent's baseline (+0.5 row for first
+# children) to the farthest child; at each node's row a horizontal rule of
+# 1 em, then 0.2 em gap, then the label. Roots hang off a free trunk at
+# pitch/2. On the x-axis labels are rotated 90 deg (ladder rows are
+# panel-width/40 at 40 breaks — horizontal labels collide); on the y-axis
+# they are horizontal.
 
 dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
                         vertical = FALSE) {
@@ -17,18 +19,17 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   gp <- gp %||% grid::gpar()
   fontsize <- gp$fontsize %||% gp$size %||% 12
   geom <- geom %||% dirtree_geom(em_in = fontsize / 72.27)
-  widths <- .dirtree_col_widths(labels, nodes$level, gp, geom)
   text_len <- nchar(as.character(labels)) * 0.55 * fontsize / 72.27
-  ly <- dirtree_layout(nodes, pos, widths, text_len, geom)
+  ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom)
   if (is.null(ly)) {
     return(grid::grid.null())
   }
   along <- function(a) grid::unit(as.numeric(a), "npc")
   # Depth coordinates run from the axis line into the band. For the x-axis
   # the axis line is the band TOP: grid y grows upward, so depth d maps to
-  # 1npc - d. (For the y-axis, depth is along x from the band's right edge.)
-  # The band's measured height equals the tree's deepest extent, so no
-  # viewport is needed: the 1npc expression resolves against the band.
+  # 1npc - d. (For the y-axis, depth is along x from the band's left edge,
+  # the axis line.) The band's measured size equals the tree's deepest
+  # extent, so the 1npc expressions resolve against the band viewport.
   depth_x <- function(d) {
     if (vertical) grid::unit(1, "npc") - grid::unit(d, "inches")
     else grid::unit(d, "inches")
@@ -41,25 +42,26 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y1 = if (vertical) along(ly$trunk$y1)    else depth_y(ly$trunk$x),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
-  # Elbow: at each node's row, from its trunk column into the label anchor.
-  elbow <- grid::segmentsGrob(
-    x0 = if (vertical) depth_x(ly$x_trunk) else along(ly$y),
-    y0 = if (vertical) along(ly$x)         else depth_y(ly$x_trunk),
-    x1 = if (vertical) depth_x(ly$x_label) else along(ly$y),
-    y1 = if (vertical) along(ly$x)         else depth_y(ly$x_label),
+  # Horizontal rule (dtx:763): width 1 em at the node's row, from its
+  # trunk column; roots' rules run from the free trunk at pitch/2.
+  hrule <- grid::segmentsGrob(
+    x0 = if (vertical) depth_x(ly$tick$x0) else along(ly$y),
+    y0 = if (vertical) along(ly$x)         else depth_y(ly$tick$x0),
+    x1 = if (vertical) depth_x(ly$tick$x1) else along(ly$y),
+    y1 = if (vertical) along(ly$x)         else depth_y(ly$tick$x1),
     gp = rule_gp(gp), name = "dirtree-rules"
   )
   txt <- grid::textGrob(
     label = labels,
     x = if (vertical) depth_x(ly$x_label) else along(ly$x),
     y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
-    hjust = if (vertical) 1 else 1,
+    hjust = 0,
     vjust = 0.5,
     rot = if (vertical) 0 else 90,
     gp = gp, name = "label"
   )
   grid::gTree(
-    children = grid::gList(trunk, elbow,
+    children = grid::gList(trunk, hrule,
                            grid::gTree(children = grid::gList(txt),
                                        name = "dirtree-label",
                                        cl = "dirtree-label")),
@@ -119,21 +121,4 @@ rule_gp <- function(gp) {
     g$col <- gp$col %||% gp$colour %||% g$col
   }
   g
-}
-
-# Label-column width per rank level (inches): the widest prefixed label at
-# that level plus the connector gutters. Device-free estimate (0.55 em per
-# character): stringWidth needs a real device and returns 0/NA on the NULL
-# device used by R CMD check, and the pure-data geometry stays grid-free.
-.dirtree_col_widths <- function(labels, levels, gp, geom) {
-  w <- nchar(as.character(labels)) * 0.55 * (gp$fontsize %||% 12) / 72.27
-  lvl <- as.integer(levels)
-  out <- rep(geom$pitch, max(lvl) + 1L)
-  for (l in seq_along(out)) {
-    i <- which(lvl == l - 1L)
-    if (length(i)) {
-      out[l] <- max(w[i]) + 0.4 * geom$em
-    }
-  }
-  out
 }
