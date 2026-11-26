@@ -57,11 +57,19 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   # top, the y-axis leftward from the axis line.
   px <- function(r, d) if (vertical) depth_x(d) else along(r)
   py <- function(r, d) if (vertical) along(r)   else depth_y(d)
+  # Dissolve collinear trunk segments: nested blocks re-paint the same
+  # corner column, and stacked identical rules render darker/thicker under
+  # PDF antialiasing. Merge per-column intervals to their union so each
+  # column's covered span is painted exactly once (dtx draws the same
+  # geometry, but its single loop paints each column once per block with
+  # butt joins at identical colour — the union is visually identical and
+  # rasterisation-proof).
+  tr <- .dissolve_trunks(ly$trunk$x, ly$trunk$y0, ly$trunk$y1)
   trunk <- grid::segmentsGrob(
-    x0 = px(ly$trunk$y0, ly$trunk$x),
-    y0 = py(ly$trunk$y0, ly$trunk$x),
-    x1 = px(ly$trunk$y1, ly$trunk$x),
-    y1 = py(ly$trunk$y1, ly$trunk$x),
+    x0 = px(tr$y0, tr$x),
+    y0 = py(tr$y0, tr$x),
+    x1 = px(tr$y1, tr$x),
+    y1 = py(tr$y1, tr$x),
     gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
   )
   # Connector arm into each node's label (gold / dtx:757-768): the 1 em rule
@@ -152,6 +160,46 @@ widthDetails.dirtreeGrob <- function(x) {
     )
   }
   invisible(TRUE)
+}
+
+#' Merge collinear overlapping vertical trunk segments (layout coordinates:
+#' depth `x` fixed per column, along-axis span `y0..y1`) into per-column
+#' unions, so nested blocks sharing a corner column paint each covered span
+#' exactly once instead of stacking identical rules.
+#' @keywords internal
+#' @noRd
+.dissolve_trunks <- function(x, y0, y1) {
+  stopifnot(length(x) == length(y0), length(y0) == length(y1))
+  if (!length(x)) {
+    return(list(x = x, y0 = y0, y1 = y1))
+  }
+  lo <- pmin(y0, y1)
+  hi <- pmax(y0, y1)
+  ord <- order(x, lo)
+  x <- x[ord]; lo <- lo[ord]; hi <- hi[ord]
+  keep_x <- vector("list", length(x))
+  new_x <- new_lo <- new_hi <- numeric(0)
+  i <- 1L
+  n <- length(x)
+  while (i <= n) {
+    j <- i
+    while (j < n && x[j + 1L] == x[j]) j <- j + 1L
+    seg_lo <- lo[i:j]; seg_hi <- hi[i:j]
+    ord2 <- order(seg_lo)
+    seg_lo <- seg_lo[ord2]; seg_hi <- seg_hi[ord2]
+    cur_lo <- seg_lo[1L]; cur_hi <- seg_hi[1L]
+    for (k in seq_along(seg_lo)[-1]) {
+      if (seg_lo[k] <= cur_hi) {
+        cur_hi <- max(cur_hi, seg_hi[k])
+      } else {
+        new_x <- c(new_x, x[i]); new_lo <- c(new_lo, cur_lo); new_hi <- c(new_hi, cur_hi)
+        cur_lo <- seg_lo[k]; cur_hi <- seg_hi[k]
+      }
+    }
+    new_x <- c(new_x, x[i]); new_lo <- c(new_lo, cur_lo); new_hi <- c(new_hi, cur_hi)
+    i <- j + 1L
+  }
+  list(x = new_x, y0 = new_lo, y1 = new_hi)
 }
 
 #' Rule gpar: thin butt-capped lines inheriting colour from the theme text,
