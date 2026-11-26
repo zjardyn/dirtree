@@ -10,6 +10,10 @@ draws ranked hierarchies. Long taxonomies — e.g. amplicon lineages from
 phylum to genus — stay navigable on the axis instead of collapsing into
 repeating prefixes.
 
+![Directory tree as an x-axis guide](examples/minimal_16S.png)
+
+![Directory tree as a y-axis guide](examples/minimal_16S_y.png)
+
 ## Features
 
 - **`guide_dirtree()`** — a ggplot2 axis guide (x or y, bottom or left).
