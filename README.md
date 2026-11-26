@@ -14,6 +14,15 @@ repeating prefixes.
 
 ![Directory tree as a y-axis guide](examples/minimal_16S_y.png)
 
+## The gold standard
+
+The geometry is transcribed pixel-for-pixel from a reference render of the
+LaTeX [dirtree package](https://ctan.org/pkg/dirtree)
+([generator](figures/chapter3/firing_lineages_DA_sorted.tex) in the thesis
+template):
+
+![Gold standard render from the LaTeX dirtree generator](examples/golden_standard.png)
+
 ## Features
 
 - **`guide_dirtree()`** — a ggplot2 axis guide (x or y, bottom or left).
