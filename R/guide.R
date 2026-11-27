@@ -91,14 +91,10 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
       # `pos` carry the direction; the rows must not.
       ord <- order(idx)
       nd <- nodes[idx[ord], , drop = FALSE]
+      # Elided ranks: a NA parent is legitimate (a subtree root whose
+      # shallower ranks were dropped), so no orphan check here — the
+      # depth-first contract validated at the constructor covers ordering.
       newpar <- match(nodes$parent[idx[ord]], idx[ord])
-      orphan <- which(is.na(newpar) & nd$level > 0L)
-      if (length(orphan)) {
-        .dt_abort(c(
-          "{.fn guide_dirtree} breaks are not tree-closed: {.val {nd$node_key[orphan]}} has no parent row.",
-          i = "Include every ancestor rank in {.field breaks}."
-        ))
-      }
       nd$parent <- as.integer(newpar)
       text <- .dirtree_prefixed(nd$label, nd$level, params$prefixes, nd$n)
       gp <- grid::gpar(
@@ -140,18 +136,17 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
     .dt_abort("{.field level} must be 0-based integer rank depths.")
   }
   levels <- as.integer(nodes$level)
-  if (length(levels) && levels[1] != 0L) {
-    .dt_abort(c(
-      "{.arg nodes} is not depth-first: the first row has rank depth {levels[1]}, not 0.",
-      i = "Rows must visit every parent before its children (see {.fn dirtree_data})."
-    ))
-  }
+  # Roots may sit at any level when shallower ranks are elided (hits-only
+  # trees), so NA parents are not validated here beyond the depth-first
+  # contract below.
   bad <- vapply(seq_along(levels), function(i) {
     if (levels[i] == 0L) {
       !is.na(nodes$parent[i])
     } else {
       p <- nodes$parent[i]
-      is.na(p) || p >= i || levels[p] != levels[i] - 1L
+      # NA parents are legitimate subtree roots (shallower ranks elided);
+      # a present parent must precede and sit strictly shallower.
+      !is.na(p) && (p >= i || levels[p] >= levels[i])
     }
   }, logical(1))
   if (any(bad)) {
@@ -173,6 +168,9 @@ guide_dirtree <- function(title = ggplot2::waiver(), theme = NULL,
 #' @keywords internal
 #' @noRd
 .dirtree_prefixed <- function(labels, levels, prefixes, n) {
-  pre <- .dirtree_prefix_vec(levels, prefixes)
+  # ASV leaf tags ("a_<6 hex>") are generated labels, not taxa: display them
+  # bare, without the rank prefix.
+  asv <- grepl("^asv_[0-9a-f]{8}$", labels)
+  pre <- ifelse(asv, "", .dirtree_prefix_vec(levels, prefixes))
   paste0(pre, labels)
 }

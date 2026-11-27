@@ -24,7 +24,14 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   .check_dirtree_inputs(nodes, labels, pos)
   gp <- gp %||% grid::gpar()
   fontsize <- gp$fontsize %||% gp$size %||% 12
-  geom <- geom %||% dirtree_geom(em_in = fontsize / 72.27)
+  # Geometry/text decoupling: DIRTREE_EM_PT fixes the em (arm/gap/column
+  # pitch) independently of the label fontsize, DIRTREE_RULE_PT the rule
+  # weight — lets dense figures keep gold-proportioned bars under small text.
+  em_pt <- suppressWarnings(as.numeric(Sys.getenv("DIRTREE_EM_PT", "")))
+  rule_pt <- suppressWarnings(as.numeric(Sys.getenv("DIRTREE_RULE_PT", "")))
+  em_in <- if (is.finite(em_pt) && em_pt > 0) em_pt / 72.27 else fontsize / 72.27
+  rp <- if (is.finite(rule_pt) && rule_pt > 0) rule_pt else 0.35
+  geom <- geom %||% dirtree_geom(em_in = em_in, rule_pt = rp)
   # Gold typography: typewriter labels, genus/species NAMES italic
   # (\texttt{g\_}{\itshape ...}). Courier advance width is exactly 0.6 em,
   # so text_len is exact, not a heuristic.
@@ -33,7 +40,23 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     fontfamily = "mono", fontface = face, fontsize = fontsize,
     col = gp$col %||% grid::gpar("col")$col
   )
-  text_len <- nchar(as.character(labels)) * 0.6 * fontsize / 72.27
+  # Label width: the gold assumed LaTeX Courier's exact 0.6 em advance, but
+  # cairo devices map "mono" to a wider monospace (~1.1 em measured), which
+  # under-reserved the axis band and pushed chains off the figure. Measure
+  # the device's actual advance for the label font when one is open; fall
+  # back to the gold's 0.6 em otherwise (pure pdf() keeps Courier metrics).
+  adv_em <- tryCatch({
+    grid::pushViewport(grid::viewport(gp = grid::gpar(
+      fontfamily = gp$fontfamily %||% "mono", fontsize = fontsize)))
+    on.exit(grid::popViewport(), add = TRUE)
+    grid::convertWidth(
+      grid::stringWidth(strrep("0", 64L)), "in", valueOnly = TRUE
+    ) / 64L / (fontsize / 72.27)
+  }, error = function(e) 0.67)
+  # Reserve with a 15% safety margin over the build-time measurement: the
+  # split labels are seam-pinned at draw time, so the reservation only has
+  # to be generous, never exact.
+  text_len <- nchar(as.character(labels)) * adv_em * fontsize / 72.27 * 1.15
   ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom,
                        vertical = vertical)
   if (is.null(ly)) {
@@ -63,14 +86,17 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   # column's covered span is painted exactly once (dtx draws the same
   # geometry, but its single loop paints each column once per block with
   # butt joins at identical colour — the union is visually identical and
-  # rasterisation-proof).
-  tr <- .dissolve_trunks(ly$trunk$x, ly$trunk$y0, ly$trunk$y1)
+  # rasterisation-proof). Dotted (elided-rank) and solid spans merge
+  # separately so the skip marking survives.
+  tr <- .dissolve_trunks(ly$trunk$x, ly$trunk$y0, ly$trunk$y1, ly$trunk$dotted)
+  gp_tr <- rule_gp(gp, ly$geom$rule)
+  gp_tr$lty <- if (length(tr$dotted)) ifelse(tr$dotted, "dotted", "solid") else "solid"
   trunk <- grid::segmentsGrob(
     x0 = px(tr$y0, tr$x),
     y0 = py(tr$y0, tr$x),
     x1 = px(tr$y1, tr$x),
     y1 = py(tr$y1, tr$x),
-    gp = rule_gp(gp, ly$geom$rule), name = "dirtree-rules"
+    gp = gp_tr, name = "dirtree-rules"
   )
   # Connector arm into each node's label (gold / dtx:757-768): the 1 em rule
   # from the node's own corner column toward the label. Layout's tick `x*`
@@ -86,23 +112,52 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y1 = py(ly$tick$y1[show], ly$tick$x1[show]),
     gp = rule_gp(gp, ly$geom$rule), name = "dirtree-arms"
   )
-  txt <- grid::textGrob(
-    label = labels,
-    x = if (vertical) depth_x(ly$x_label) else along(ly$x),
-    y = if (vertical) along(ly$x)         else depth_y(ly$x_label),
-    # The label starts 1.2 em from its own trunk column on the tree's inner
-    # side and grows toward the axis line on the y-axis; on the mirrored
-    # x-axis it anchors by its FAR end (hjust 1, standard rotated-axis
-    # typography: reads bottom-up) at the same point and dangles away from
-    # the axis line.
-    hjust = if (vertical) 0 else 1,
-    vjust = 0.5,
-    rot = if (vertical) 0 else 90,
-    gp = gp, name = "label"
-  )
+  # Labels may carry a dropped-rank chain before the hit itself
+  # ("o_X;f_Y;g_Z" in hits-only trees): the chain draws grey (scaffold
+  # ancestry), the hit keeps the theme colour — grey again only if the hit
+  # itself is an unresolved placeholder ("I.S." / "Unknown"). The seam
+  # between the two is resolved at DRAW time (device metrics), so it stays
+  # exact on any font: a classed grob measures the full label and the hit
+  # part under the real device, then pins the hit's start there and
+  # right-aligns the grey chain against it.
+  # a leading \x01 sentinel marks a whole-grey label (e.g. shared
+  # untested-ancestry rows); it is stripped before drawing
+  grey_node <- startsWith(labels, "\x01")
+  labels <- sub("^\x01", "", labels)
+  has_chain <- grepl(";", labels)
+  chain_part <- ifelse(has_chain, sub(";[^;]*$", "", labels), "")
+  hit_part <- ifelse(has_chain, sub("^.*;", "", labels), labels)
+  gp_hit <- gp
+  ph <- grepl("I\\.S\\.|Unknown", hit_part) | grey_node
+  if (any(ph)) gp_hit$col <- ifelse(ph, "grey45", gp$col %||% "black")
+  gp_hit$fontface <- ifelse(grepl("^[gs]_", hit_part), "italic", "plain")
+  gp_hit$font <- NULL
+  gp_chain <- gp
+  gp_chain$col <- "grey50"
+  gp_chain$fontface <- "plain"
+  gp_chain$font <- NULL
+  if (vertical) {
+    txt <- grid::gList(grid::grob(
+      label = labels, hit = hit_part,
+      chain = ifelse(has_chain, paste0(chain_part, ";"), ""),
+      x_depth = ly$x_label, y_row = ly$x,
+      gp_hit = gp_hit, gp_chain = gp_chain,
+      fontsize = fontsize, cl = "dirtreeSplitLabel"
+    ))
+  } else {
+    txt <- grid::gList(grid::textGrob(
+      label = labels,
+      x = along(ly$x),
+      y = depth_y(ly$x_label),
+      hjust = 1,
+      vjust = 0.5,
+      rot = 90,
+      gp = gp_hit, name = "label-hit"
+    ))
+  }
   grid::gTree(
     children = grid::gList(trunk, hrule,
-                           grid::gTree(children = grid::gList(txt),
+                           grid::gTree(children = txt,
                                        name = "dirtree-label",
                                        cl = "dirtree-label")),
     vertical = vertical,
@@ -112,6 +167,41 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     vp = grid::viewport(name = "dirtree"),
     cl = "dirtreeGrob"
   )
+}
+
+#' Draw the split labels: the chain grey, the hit in theme colour, with the
+#' seam measured under the REAL device at draw time (build-time font
+#' metrics differ from draw-time rendering on cairo). The hit's start is
+#' pinned at label start + full width - hit width, and the grey chain is
+#' right-aligned against that same point, so the two can never overlap
+#' however wide the device mono font actually is.
+#' @keywords internal
+#' @noRd
+drawDetails.dirtreeSplitLabel <- function(x, recording = TRUE) {
+  grid::pushViewport(grid::viewport(gp = grid::gpar(
+    fontfamily = "mono", fontsize = x$fontsize)))
+  on.exit(grid::popViewport(), add = TRUE)
+  w_total <- grid::convertWidth(
+    grid::stringWidth(x$label), "in", valueOnly = TRUE)
+  w_hit <- grid::convertWidth(
+    grid::stringWidth(x$hit), "in", valueOnly = TRUE)
+  seam <- x$x_depth - (w_total - w_hit)   # depth where the hit starts
+  grid::grid.text(
+    label = x$hit,
+    x = grid::unit(1, "npc") - grid::unit(seam, "inches"),
+    y = grid::unit(x$y_row, "npc"),
+    just = c(0, 0.5), gp = x$gp_hit
+  )
+  chn <- x$chain != ""
+  if (any(chn)) {
+    grid::grid.text(
+      label = x$chain[chn],
+      x = grid::unit(1, "npc") - grid::unit(seam[chn], "inches"),
+      y = grid::unit(x$y_row[chn], "npc"),
+      just = c(1, 0.5), gp = x$gp_chain
+    )
+  }
+  invisible(TRUE)
 }
 
 #' Size report: the band's depth (perpendicular to the axis) is the tree's
@@ -127,6 +217,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
 #' @noRd
 #' @rawNamespace S3method(grid::heightDetails, dirtreeGrob)
 #' @rawNamespace S3method(grid::widthDetails, dirtreeGrob)
+#' @rawNamespace S3method(grid::drawDetails, dirtreeSplitLabel)
 heightDetails.dirtreeGrob <- function(x) {
   if (isTRUE(x$vertical)) grid::unit(1, "npc")
   else grid::unit(x$band, "inches")
@@ -168,38 +259,43 @@ widthDetails.dirtreeGrob <- function(x) {
 #' exactly once instead of stacking identical rules.
 #' @keywords internal
 #' @noRd
-.dissolve_trunks <- function(x, y0, y1) {
+.dissolve_trunks <- function(x, y0, y1, dotted = NULL) {
   stopifnot(length(x) == length(y0), length(y0) == length(y1))
+  if (is.null(dotted)) dotted <- rep(FALSE, length(x))
+  stopifnot(length(dotted) == length(x))
   if (!length(x)) {
-    return(list(x = x, y0 = y0, y1 = y1))
+    return(list(x = x, y0 = y0, y1 = y1, dotted = dotted))
   }
   lo <- pmin(y0, y1)
   hi <- pmax(y0, y1)
-  ord <- order(x, lo)
-  x <- x[ord]; lo <- lo[ord]; hi <- hi[ord]
-  keep_x <- vector("list", length(x))
+  gkey <- paste(x, dotted)
+  ord <- order(gkey, lo)
+  x <- x[ord]; lo <- lo[ord]; hi <- hi[ord]; dotted <- dotted[ord]
+  gkey <- gkey[ord]
   new_x <- new_lo <- new_hi <- numeric(0)
+  new_dot <- logical(0)
   i <- 1L
   n <- length(x)
   while (i <= n) {
     j <- i
-    while (j < n && x[j + 1L] == x[j]) j <- j + 1L
-    seg_lo <- lo[i:j]; seg_hi <- hi[i:j]
-    ord2 <- order(seg_lo)
-    seg_lo <- seg_lo[ord2]; seg_hi <- seg_hi[ord2]
-    cur_lo <- seg_lo[1L]; cur_hi <- seg_hi[1L]
-    for (k in seq_along(seg_lo)[-1]) {
-      if (seg_lo[k] <= cur_hi) {
-        cur_hi <- max(cur_hi, seg_hi[k])
-      } else {
-        new_x <- c(new_x, x[i]); new_lo <- c(new_lo, cur_lo); new_hi <- c(new_hi, cur_hi)
-        cur_lo <- seg_lo[k]; cur_hi <- seg_hi[k]
+    while (j < n && gkey[j + 1L] == gkey[j]) j <- j + 1L
+    cur_lo <- lo[i]; cur_hi <- hi[i]
+    if (j > i) {
+      for (k in (i + 1L):j) {
+        if (lo[k] <= cur_hi) {
+          cur_hi <- max(cur_hi, hi[k])
+        } else {
+          new_x <- c(new_x, x[i]); new_lo <- c(new_lo, cur_lo); new_hi <- c(new_hi, cur_hi)
+          new_dot <- c(new_dot, dotted[i])
+          cur_lo <- lo[k]; cur_hi <- hi[k]
+        }
       }
     }
     new_x <- c(new_x, x[i]); new_lo <- c(new_lo, cur_lo); new_hi <- c(new_hi, cur_hi)
+    new_dot <- c(new_dot, dotted[i])
     i <- j + 1L
   }
-  list(x = new_x, y0 = new_lo, y1 = new_hi)
+  list(x = new_x, y0 = new_lo, y1 = new_hi, dotted = new_dot)
 }
 
 #' Rule gpar: thin butt-capped lines inheriting colour from the theme text,

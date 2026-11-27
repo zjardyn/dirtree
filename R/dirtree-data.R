@@ -98,7 +98,17 @@ dirtree_data <- function(x, ranks = NULL) {
     vapply(seq_along(p), function(k) paste(p[seq_len(k)], collapse = "\r"),
            character(1))
   })
-  all_keys <- sort(unlist(prefixes, use.names = FALSE))
+  # Depth-first order by path key, with ASV leaf segments sorting LAST
+  # within their parent: an "ASV.<n>_<hash>" label is a generated leaf tag,
+  # not a taxon name, so it hangs at the bottom of its sibling run instead
+  # of jumping alphabetically ahead of the named children. The sort key
+  # prepends a high sentinel to any ASV segment; the path keys themselves
+  # (and thus parent-before-child and the stored keys) are unchanged.
+  keys_raw <- unlist(prefixes, use.names = FALSE)
+  sort_keys <- gsub("(^|\r)asv_[0-9a-f]{8}($|\r)", "\\1\x7f\x7fasv_xxx\x7f", keys_raw)
+  # method="radix" sorts byte-wise in the C locale; the default collation
+  # ignores control characters and would undo the sentinel.
+  all_keys <- keys_raw[order(sort_keys, method = "radix")]
   keys <- all_keys[!duplicated(all_keys)]
   split_key <- function(k) strsplit(k, "\r", fixed = TRUE)[[1]]
   label <- vapply(keys, function(k) {

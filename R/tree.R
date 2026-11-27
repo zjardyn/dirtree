@@ -131,29 +131,69 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   first_child <- kid & (seq_len(n) == 1L | is.na(p1) |
                           (p1 >= 1L & p1 <= n & cp[seq_len(n)][pmax(p1, 1L)] != cp))
 
-  # Trunk blocks: runs of consecutive rows sharing a connector-parent. Root
-  # (NA-parent) rows are NOT blocks — `rle()` never groups NA runs, so roots
-  # are excluded and the forest rule below draws the one root trunk.
+  # Trunk segments, one per child: children of the same parent tile the span
+  # from the parent's box bottom to the last child's arm (each segment runs
+  # from the previous child's arm down to this child's arm on the child's
+  # corner column). A child whose rank level jumps past elided ranks
+  # (hits-only trees; recorded in the `skip` column) draws its stretch
+  # DOTTED so the skipped ranks read on the connector; the rest stays solid.
   kid_rows <- seq_len(n)[kid]
-  blocks <- .rle_rows(cp[kid_rows], cp_row = kid_rows)
-  x_blk <- x_conn[blocks$start]                       # the children's column
-  y0_blk <- leg_top[blocks$cp]                        # parent's box bottom
-  y1_blk <- arm_y[blocks$end]                         # last child's arm
-  # Roots share their own corner column as ONE trunk, from the first root's
-  # centre to the LAST root's arm (the last root is a child of that trunk,
-  # dtx:736) — spanning every root even when the subtrees interleave.
-  if (any(!kid)) {
-    x_blk <- c(x_blk, x_conn[1L])
-    y0_blk <- c(y0_blk, root_top_y[min(which(!kid))])
-    y1_blk <- c(y1_blk, arm_y[max(which(!kid))])
+  x_blk <- x_conn[kid_rows]                 # the children's column
+  y0_blk <- numeric(length(kid_rows))
+  y1_blk <- arm_y[kid_rows]
+  sk_col <- if (is.null(nodes$skip)) rep(0, n) else as.numeric(nodes$skip)
+  trunk_dotted <- logical(length(kid_rows))
+  last_arm <- leg_top                        # parent box bottom before any child
+  for (i in seq_along(kid_rows)) {
+    r <- kid_rows[i]
+    p <- cp[r]
+    y0_blk[i] <- last_arm[p]
+    trunk_dotted[i] <- if (!is.null(nodes$skip)) sk_col[r] > 0L else (lvl[r] - lvl[p] > 1L)
+    last_arm[p] <- arm_y[r]
   }
-  trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk)
+  # Root trunk: the gold's forest rule spans the first root's centre to the
+  # last root's arm on the shared corner column. Re-levelled hits-only
+  # trees put every root on the level-0 column, so the global span is
+  # correct; mixed-level roots (should not occur) fall back to adjacent
+  # runs of the same column.
+  if (any(!kid)) {
+    rt <- which(!kid)
+    if (length(unique(lvl[rt])) == 1L) {
+      x_blk <- c(x_blk, x_conn[rt[1L]])
+      y0_blk <- c(y0_blk, root_top_y[rt[1L]])
+      y1_blk <- c(y1_blk, arm_y[rt[length(rt)]])
+      trunk_dotted <- c(trunk_dotted, FALSE)
+    } else {
+      run_start <- rt[1L]; prev <- rt[1L]
+      flush <- function(a, b) {
+        if (b > a && lvl[b] == lvl[a]) {
+          x_blk <<- c(x_blk, x_conn[a])
+          y0_blk <<- c(y0_blk, root_top_y[a])
+          y1_blk <<- c(y1_blk, arm_y[b])
+          trunk_dotted <<- c(trunk_dotted, FALSE)
+        }
+      }
+      for (r in rt[-1L]) {
+        if (r == prev + 1L && lvl[r] == lvl[prev]) {
+          prev <- r
+        } else {
+          flush(run_start, prev)
+          run_start <- r; prev <- r
+        }
+      }
+      flush(run_start, prev)
+    }
+  }
+  trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk, dotted = trunk_dotted)
   # Connector arm into each node's label (dtx:757-768, gold): the horizontal
   # rule runs from the node's OWN corner column (x_conn) across width (1 em)
   # on the baseline row (arm_y); roots included. The first row overall (the
   # first root) is unconnected in the gold — its arm is suppressed. On the
   # rotated x-axis the same rule maps through px()/py() unchanged.
   show <- seq_len(n) > 1L
+  # The first row's arm is suppressed in the gold (nothing precedes it), but
+  # a hits-only head with elided ranks above it must show its connector.
+  if (!is.null(nodes$skip) && nodes$skip[1] > 0) show[1] <- TRUE
   tick <- list(
     x0 = x_conn,
     x1 = x_rule_end,
