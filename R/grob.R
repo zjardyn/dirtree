@@ -94,6 +94,17 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
   # butt joins at identical colour — the union is visually identical and
   # rasterisation-proof). Dotted (elided-rank) and solid spans merge
   # separately so the skip marking survives.
+  # Rules (trunk + arms) draw at DRAW time for the vertical axis: the
+  # along-axis offsets are typographic (em, see tree.R yoff) and must be
+  # converted npc with the LIVE viewport height, so a classed grob defers
+  # the dissolve + segments until the device is open.
+  if (vertical) {
+    rules <- grid::gList(grid::grob(
+      trunk = ly$trunk, tick = ly$tick, yoff = ly$yoff,
+      gpbase = gp, rulept = ly$geom$rule,
+      fontsize = fontsize, cl = "dirtreeRules"
+    ))
+  } else {
   tr <- .dissolve_trunks(ly$trunk$x, ly$trunk$y0, ly$trunk$y1, ly$trunk$dotted)
   gp_tr <- rule_gp(gp, ly$geom$rule)
   gp_tr$lty <- if (length(tr$dotted)) ifelse(tr$dotted, "dotted", "solid") else "solid"
@@ -118,6 +129,8 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     y1 = py(ly$tick$y1[show], ly$tick$x1[show]),
     gp = rule_gp(gp, ly$geom$rule), name = "dirtree-arms"
   )
+  rules <- grid::gList(trunk, hrule)
+  }
   # Labels may carry a dropped-rank chain before the hit itself
   # ("o_X;f_Y;g_Z" in hits-only trees): the chain draws grey (scaffold
   # ancestry), the hit keeps the theme colour — grey again only if the hit
@@ -162,7 +175,7 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     ))
   }
   grid::gTree(
-    children = grid::gList(trunk, hrule,
+    children = grid::gList(rules,
                            grid::gTree(children = txt,
                                        name = "dirtree-label",
                                        cl = "dirtree-label")),
@@ -324,4 +337,34 @@ rule_gp <- function(gp, rule = NULL, min_lwd = 0.5) {
   }
   g$lwd <- max(as.numeric(g$lwd), min_lwd)
   g
+}
+
+#' Draw the tree rules (trunk + connector arms) for the vertical axis at
+#' draw time: the along-axis offsets are typographic constants in inches
+#' (tree.R yoff) and must be converted to npc with the LIVE viewport
+#' height, so parent elbows meet child trunks at any row pitch.
+#' @keywords internal
+#' @noRd
+drawDetails.dirtreeRules <- function(x, recording = TRUE) {
+  H <- grid::convertHeight(grid::unit(1, "npc"), "in", valueOnly = TRUE)
+  offnpc <- function(k) (x$yoff[[k]] %||% x$yoff$arm) / H
+  px <- function(d) grid::unit(1, "npc") - grid::unit(d, "inches")
+  py <- function(r) grid::unit(r, "npc")
+  # trunk segments with corrected endpoints
+  y0c <- x$trunk$y0 - vapply(x$trunk$y0k, offnpc, numeric(1))
+  y1c <- x$trunk$y1 - vapply(x$trunk$y1k, offnpc, numeric(1))
+  tr <- .dissolve_trunks(x$trunk$x, y0c, y1c, x$trunk$dotted)
+  gp_tr <- rule_gp(x$gpbase, x$rulept)
+  gp_tr$lty <- if (length(tr$dotted)) ifelse(tr$dotted, "dotted", "solid") else "solid"
+  grid.draw(grid::segmentsGrob(
+    x0 = px(tr$x), y0 = py(tr$y0), x1 = px(tr$x), y1 = py(tr$y1),
+    gp = gp_tr, name = "dirtree-rules"))
+  # connector arms (elbows) at the arm offset
+  show <- x$tick$show
+  yc <- x$tick$y0 - vapply(x$tick$yk, offnpc, numeric(1))
+  grid.draw(grid::segmentsGrob(
+    x0 = px(x$tick$x0[show]), y0 = py(yc[show]),
+    x1 = px(x$tick$x1[show]), y1 = py(yc[show]),
+    gp = rule_gp(x$gpbase, x$rulept), name = "dirtree-arms"))
+  invisible(TRUE)
 }

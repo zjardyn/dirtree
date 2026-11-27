@@ -109,21 +109,19 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   # x-axis re-sets its labels top-down, so its descender side is LEFT of the
   # slot centre — the same literal minus in npc.
   pitch_npc <- if (n > 1L) stats::median(abs(diff(sort(pos)))) else 0
-  # Along-axis offsets sit on the text's DESCENDER side, a fixed device-side
-  # rule independent of the row direction: the baseline is 0.21 row below
-  # the slot centre for horizontal labels (y-axis) and right of it for the
-  # x-axis' bottom-up labels; the root trunk starts 0.02 row out from the
-  # first root's centre on the same side. A block trunk starts at the
-  # parent's box bottom on the side AWAY from the parent's dangling ink —
-  # below the slot centre on the y-axis (the ink sits above the box
-  # bottom), but on the CHILDREN'S side of the label on the mirrored x-axis
-  # (the ink dangles down through the children's corner depth, so a trunk
-  # sprung from the far side would run straight through the glyphs). The
-  # arm rides the baseline, which for the x-axis' bottom-up labels is RIGHT
-  # of the slot centre.
-  arm_y <- if (vertical) pos - 0.21 * pitch_npc else pos + 0.21 * pitch_npc
-  leg_top <- if (vertical) pos - 0.44 * pitch_npc else pos + 0.44 * pitch_npc
-  root_top_y <- pos - 0.02 * pitch_npc
+  # Along-axis offsets sit on the text's DESCENDER side as a TYPOGRAPHIC
+  # constant (fractions of the em, via geom$row = 1.2 em), NOT of the axis
+  # row pitch: at sparse pitch a row-fraction offset opens a canyon between
+  # a parent's elbow and its child's trunk (the "disconnected" defect).
+  # The offsets are returned in INCHES and applied at draw time, where the
+  # viewport height converts them to npc.
+  # arm (baseline) = 0.21 row = 0.252 em; parent box bottom = 0.44 row =
+  # 0.528 em; root span start = 0.02 row = 0.024 em — the gold's values.
+  arm_y <- pos
+  leg_top <- pos
+  root_top_y <- pos
+  yoff <- list(arm = 0.21 * geom$row, box = 0.44 * geom$row,
+               root = 0.02 * geom$row)
 
   kid <- !is.na(cp)
   # Block membership: a child is the FIRST child of its parent if the
@@ -141,15 +139,20 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
   x_blk <- x_conn[kid_rows]                 # the children's column
   y0_blk <- numeric(length(kid_rows))
   y1_blk <- arm_y[kid_rows]
+  y0k <- character(length(kid_rows))        # offset kind of each trunk top
+  y1k <- rep("arm", length(kid_rows))       # trunk bottoms all end at arms
   sk_col <- if (is.null(nodes$skip)) rep(0, n) else as.numeric(nodes$skip)
   trunk_dotted <- logical(length(kid_rows))
-  last_arm <- leg_top                        # parent box bottom before any child
+  last_val <- leg_top                       # numeric: parent's current top y
+  lastk <- rep("box", n)                    # kind of that top (box until a child lands)
   for (i in seq_along(kid_rows)) {
     r <- kid_rows[i]
     p <- cp[r]
-    y0_blk[i] <- last_arm[p]
+    y0_blk[i] <- last_val[p]
+    y0k[i] <- lastk[p]
     trunk_dotted[i] <- if (!is.null(nodes$skip)) sk_col[r] > 0L else (lvl[r] - lvl[p] > 1L)
-    last_arm[p] <- arm_y[r]
+    last_val[p] <- arm_y[r]
+    lastk[p] <- "arm"
   }
   # Connector arm visibility: the first row's arm is suppressed in the gold
   # (nothing precedes it), but a hits-only head with elided ranks above it
@@ -171,7 +174,9 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     if (same_lvl && contiguous) {
       x_blk <- c(x_blk, x_conn[rt[1L]])
       y0_blk <- c(y0_blk, root_top_y[rt[1L]])
+      y0k <- c(y0k, "root")
       y1_blk <- c(y1_blk, arm_y[rt[length(rt)]])
+      y1k <- c(y1k, "arm")
       trunk_dotted <- c(trunk_dotted, FALSE)
     } else {
       # one full pitch outside the (shifted) outermost root column, so the
@@ -179,7 +184,9 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
       spine_d <- max(x_conn) + geom$pitch
       x_blk <- c(x_blk, spine_d)
       y0_blk <- c(y0_blk, root_top_y[rt[1L]])
+      y0k <- c(y0k, "root")
       y1_blk <- c(y1_blk, arm_y[rt[length(rt)]])
+      y1k <- c(y1k, "arm")
       trunk_dotted <- c(trunk_dotted, FALSE)
       # the spine lives outside the rank columns: widen the band so the
       # axis reservation (and the grob's clipping frame) includes it
@@ -188,20 +195,23 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
       spine_elbow_x0 <- c(x_conn, rep(spine_d, length(rt)))
       spine_elbow_x1 <- c(x_rule_end, x_conn[rt])
       spine_elbow_y <- c(arm_y, arm_y[rt])
+      spine_elbow_yk <- c(rep("arm", n), rep("arm", length(rt)))
       spine_show <- c(show, rep(TRUE, length(rt)))
     }
   }
-  trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk, dotted = trunk_dotted)
+  trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk, y0k = y0k, y1k = y1k,
+                dotted = trunk_dotted)
   tick <- list(
     x0 = if (exists("spine_elbow_x0")) spine_elbow_x0 else x_conn,
     x1 = if (exists("spine_elbow_x1")) spine_elbow_x1 else x_rule_end,
     y0 = if (exists("spine_elbow_y")) spine_elbow_y else arm_y,
     y1 = if (exists("spine_elbow_y")) spine_elbow_y else arm_y,
+    yk = if (exists("spine_elbow_yk")) spine_elbow_yk else rep("arm", n),
     show = if (exists("spine_show")) spine_show else show
   )
   list(
     x = pos, y = pos, x_label = x_label, x_conn = x_conn, x_trunk = x_conn,
-    trunk = trunk, tick = tick,
+    trunk = trunk, tick = tick, yoff = yoff,
     arm = arm_y, first_child = first_child,
     depth = depth,                                   # rank spread (inches)
     band = band,                                     # deepest trunk column + sep
