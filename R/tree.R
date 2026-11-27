@@ -151,54 +151,53 @@ dirtree_layout <- function(nodes, pos, widths = NULL, text_len = NULL,
     trunk_dotted[i] <- if (!is.null(nodes$skip)) sk_col[r] > 0L else (lvl[r] - lvl[p] > 1L)
     last_arm[p] <- arm_y[r]
   }
-  # Root trunk: the gold's forest rule spans the first root's centre to the
-  # last root's arm on the shared corner column. Re-levelled hits-only
-  # trees put every root on the level-0 column, so the global span is
-  # correct; mixed-level roots (should not occur) fall back to adjacent
-  # runs of the same column.
+  # Connector arm visibility: the first row's arm is suppressed in the gold
+  # (nothing precedes it), but a hits-only head with elided ranks above it
+  # must show its connector.
+  show <- seq_len(n) > 1L
+  if (!is.null(nodes$skip) && nodes$skip[1] > 0) show[1] <- TRUE
+  # Root trunk / forest spine:
+  #  * contiguous same-level roots (the gold layout) -> one span on their
+  #    shared corner column, first root's centre to last root's arm;
+  #  * scattered or mixed-level roots (hits-only / trie trees) -> a SPINE
+  #    one column outside the deepest rank, with an elbow from the spine
+  #    into every root's own corner column. The spine sits outside all
+  #    subtrees, so it ties the forest together without slashing through
+  #    any subtree's rows.
   if (any(!kid)) {
     rt <- which(!kid)
-    if (length(unique(lvl[rt])) == 1L) {
+    contiguous <- all(diff(rt) == 1L)
+    same_lvl <- length(unique(lvl[rt])) == 1L
+    if (same_lvl && contiguous) {
       x_blk <- c(x_blk, x_conn[rt[1L]])
       y0_blk <- c(y0_blk, root_top_y[rt[1L]])
       y1_blk <- c(y1_blk, arm_y[rt[length(rt)]])
       trunk_dotted <- c(trunk_dotted, FALSE)
     } else {
-      run_start <- rt[1L]; prev <- rt[1L]
-      flush <- function(a, b) {
-        if (b > a && lvl[b] == lvl[a]) {
-          x_blk <<- c(x_blk, x_conn[a])
-          y0_blk <<- c(y0_blk, root_top_y[a])
-          y1_blk <<- c(y1_blk, arm_y[b])
-          trunk_dotted <<- c(trunk_dotted, FALSE)
-        }
-      }
-      for (r in rt[-1L]) {
-        if (r == prev + 1L && lvl[r] == lvl[prev]) {
-          prev <- r
-        } else {
-          flush(run_start, prev)
-          run_start <- r; prev <- r
-        }
-      }
-      flush(run_start, prev)
+      # one full pitch outside the (shifted) outermost root column, so the
+      # spine always sits clear of every rank column and label
+      spine_d <- max(x_conn) + geom$pitch
+      x_blk <- c(x_blk, spine_d)
+      y0_blk <- c(y0_blk, root_top_y[rt[1L]])
+      y1_blk <- c(y1_blk, arm_y[rt[length(rt)]])
+      trunk_dotted <- c(trunk_dotted, FALSE)
+      # the spine lives outside the rank columns: widen the band so the
+      # axis reservation (and the grob's clipping frame) includes it
+      depth <- spine_d + geom$sep
+      band <- depth
+      spine_elbow_x0 <- c(x_conn, rep(spine_d, length(rt)))
+      spine_elbow_x1 <- c(x_rule_end, x_conn[rt])
+      spine_elbow_y <- c(arm_y, arm_y[rt])
+      spine_show <- c(show, rep(TRUE, length(rt)))
     }
   }
   trunk <- list(x = x_blk, y0 = y0_blk, y1 = y1_blk, dotted = trunk_dotted)
-  # Connector arm into each node's label (dtx:757-768, gold): the horizontal
-  # rule runs from the node's OWN corner column (x_conn) across width (1 em)
-  # on the baseline row (arm_y); roots included. The first row overall (the
-  # first root) is unconnected in the gold — its arm is suppressed. On the
-  # rotated x-axis the same rule maps through px()/py() unchanged.
-  show <- seq_len(n) > 1L
-  # The first row's arm is suppressed in the gold (nothing precedes it), but
-  # a hits-only head with elided ranks above it must show its connector.
-  if (!is.null(nodes$skip) && nodes$skip[1] > 0) show[1] <- TRUE
   tick <- list(
-    x0 = x_conn,
-    x1 = x_rule_end,
-    y0 = arm_y, y1 = arm_y,
-    show = show
+    x0 = if (exists("spine_elbow_x0")) spine_elbow_x0 else x_conn,
+    x1 = if (exists("spine_elbow_x1")) spine_elbow_x1 else x_rule_end,
+    y0 = if (exists("spine_elbow_y")) spine_elbow_y else arm_y,
+    y1 = if (exists("spine_elbow_y")) spine_elbow_y else arm_y,
+    show = if (exists("spine_show")) spine_show else show
   )
   list(
     x = pos, y = pos, x_label = x_label, x_conn = x_conn, x_trunk = x_conn,

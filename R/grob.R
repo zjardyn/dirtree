@@ -52,11 +52,17 @@ dirtree_grob <- function(nodes, labels, pos, gp = NULL, geom = NULL,
     grid::convertWidth(
       grid::stringWidth(strrep("0", 64L)), "in", valueOnly = TRUE
     ) / 64L / (fontsize / 72.27)
-  }, error = function(e) 0.67)
+  }, error = function(e) 0.9)
+  # A device-less context still "measures" — as the pure-pdf Courier 0.6 em
+  # — which under-reserves cairo's wider mono and clips labels. Anything
+  # below 0.9 em is treated as that fallback and clamped; the real cairo
+  # mono advance is ~0.8-1.0 em, so this floors the reservation without
+  # grossly over-reserving (which would starve the tile panel).
+  adv_em <- max(adv_em, 0.9)
   # Reserve with a 15% safety margin over the build-time measurement: the
   # split labels are seam-pinned at draw time, so the reservation only has
   # to be generous, never exact.
-  text_len <- nchar(as.character(labels)) * adv_em * fontsize / 72.27 * 1.15
+  text_len <- nchar(as.character(labels)) * adv_em * fontsize / 72.27 * 1.10
   ly <- dirtree_layout(nodes, pos, text_len = text_len, geom = geom,
                        vertical = vertical)
   if (is.null(ly)) {
